@@ -1,7 +1,7 @@
 // Include before util.h (or any header that includes util.h) to get pretty
 // version of LockResourceCreationMode:
 #include "lock.h"
-
+#include "MyDebugUtils.h"
 #include "D3D11Wrapper.h"
 #include "FrameAnalysis.h"
 #include "Globals.h"
@@ -12,6 +12,11 @@
 #include <Strsafe.h>
 #include <stdarg.h>
 #include <Shlwapi.h>
+#include <string>
+#include <locale>
+#include <codecvt>
+#include <cwchar>
+
 
 // For windows shortcuts:
 #include <shobjidl.h>
@@ -482,12 +487,26 @@ void FrameAnalysisContext::Dump2DResource(ID3D11Texture2D *resource, wchar_t
 	HRESULT hr = S_OK;
 	ID3D11Texture2D *staging = resource;
 	D3D11_TEXTURE2D_DESC staging_desc, *desc = orig_desc;
+	//UINT uiNameLen = 0;
+	//void* pData = nullptr;; // Initialize the pointer to nullptr
+	//wchar_t name[128] = {};
+	//UINT size = sizeof(name);
+	//resource->GetPrivateData(WKPDID_D3DDebugObjectName, &size, name);
+	std::string baseString = GetDebugObjectName(resource);
+	// Convert the std::string to wchar_t*
+	wchar_t* wideBase = StringToWchar(baseString);
 
+	wchar_t* combinedWstr = CombineWideStrings(filename, wideBase);
+
+	filename = combinedWstr;
+	//resource->GetPrivateData(WKPDID_D3DDebugObjectNameW, &uiNameLen, pData);
+	//resource->GetPrivateData(WKPDID_D3DDebugObjectName, &uiNameLen, pData);
 	// In order to de-dupe Texture2D resources, we need to compare their
 	// contents before dumping them to a file, so we copy them into a
 	// staging resource (if we did not already do so earlier for the
 	// reverse stereo blit). DirectXTK will notice this has been done and
 	// skip doing it again.
+
 	resource->GetDesc(&staging_desc);
 	if ((staging_desc.Usage != D3D11_USAGE_STAGING) || !(staging_desc.CPUAccessFlags & D3D11_CPU_ACCESS_READ) || (staging_desc.Format != format)) {
 		hr = StageResource(resource, &staging_desc, &staging, format);
