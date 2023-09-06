@@ -729,8 +729,13 @@ static bool ParseDrawCommand(const wchar_t *section,
 			ok = ParseDrawCommandArgs(val, operation, false, 3, ini_namespace, pre_command_list->scope);
 		}
 	} else if (!wcscmp(key, L"drawindexedinstanced")) {
-		operation->type = DrawCommandType::DRAW_INDEXED_INSTANCED;
-		ok = ParseDrawCommandArgs(val, operation, false, 5, ini_namespace, pre_command_list->scope);
+		if (!wcscmp(val->c_str(), L"auto")) {
+			operation->type = DrawCommandType::AUTO_INDEX_INSTANCE_COUNT;
+		}
+		else {
+			operation->type = DrawCommandType::DRAW_INDEXED_INSTANCED;
+			ok = ParseDrawCommandArgs(val, operation, false, 5, ini_namespace, pre_command_list->scope);
+		}
 	} else if (!wcscmp(key, L"drawinstanced")) {
 		operation->type = DrawCommandType::DRAW_INSTANCED;
 		ok = ParseDrawCommandArgs(val, operation, false, 4, ini_namespace, pre_command_list->scope);
@@ -1264,6 +1269,18 @@ void DrawCommand::run(CommandListState *state)
 			COMMAND_LIST_LOG(state, "[%S] drawindexed = auto -> DrawIndexed(%u, 0, 0)\n", ini_section.c_str(), auto_count);
 			if (auto_count)
 				mOrigContext1->DrawIndexed(auto_count, 0, 0);
+			else
+				COMMAND_LIST_LOG(state, "  Unable to determine index count\n");
+			break;
+		case DrawCommandType::AUTO_INDEX_INSTANCE_COUNT:
+			if (!info) {
+				COMMAND_LIST_LOG(state, "[%S] drawindexedinstanced = auto -> NO ACTIVE DRAW CALL\n", ini_section.c_str());
+				break;
+			}
+			auto_count = get_index_count_from_current_ib(mOrigContext1);
+			COMMAND_LIST_LOG(state, "[%S] drawindexedinstanced = auto -> DrawIndexedInstanced(%u, %u, 0, 0, %u)\n", ini_section.c_str(), auto_count, info->InstanceCount, info->FirstInstance);
+			if (auto_count)
+				mOrigContext1->DrawIndexedInstanced(auto_count, info->InstanceCount, 0, 0, info->FirstInstance);
 			else
 				COMMAND_LIST_LOG(state, "  Unable to determine index count\n");
 			break;
@@ -2948,6 +2965,8 @@ float CommandListOperand::evaluate(CommandListState *state, HackerDevice *device
 			return (float)G->hunting;
 		case ParamOverrideType::FRAME_ANALYSIS:
 			return G->analyse_frame;
+		case ParamOverrideType::EFFECTIVE_DPI:
+			return get_effective_dpi();
 		// XXX: If updating this list, be sure to also update
 		// XXX: operand_allowed_in_context()
 	}
@@ -3870,6 +3889,7 @@ static bool operand_allowed_in_context(ParamOverrideType type, CommandListScope 
 		case ParamOverrideType::STEREO_AVAILABLE:
 		case ParamOverrideType::SLI:
 		case ParamOverrideType::HUNTING:
+		case ParamOverrideType::EFFECTIVE_DPI:
 			return true;
 	}
 	return false;
