@@ -18,6 +18,7 @@
 
 #include "HackerDevice.h"
 #include "HackerContext.h"
+#include <unordered_map>
 
 #define MAX_SIMULTANEOUS_NOTICES 10
 
@@ -671,6 +672,44 @@ void Overlay::DrawShaderInfoLines(float *y)
 	// purposes). Since these only show up while hunting, it is better to
 	// have them reflect the actual order that they are run in. The summary
 	// line can stay in order of importance since it is always shown.
+	std::unordered_map<std::string, uint32_t> selectedBufferResources = {
+	  {"VB", G->mSelectedVertexBuffer},
+	  {"IB", G->mSelectedIndexBuffer},
+	};
+
+	for (const auto& pair : selectedBufferResources) {
+		if (pair.second != 0) {
+			std::string typeName = pair.first;
+			ID3D11Resource* foundKey = FindBufByValue(G->mResources, pair.second);
+			if (foundKey != nullptr) {
+				std::string combinedString = typeName + " Name " + GetDebugObjectName(foundKey);
+				DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()),pair.second, y, false);
+			}
+		}
+	}
+	std::unordered_map<std::string, UINT64> selectedShaderResources = {
+	  {"VS", G->mSelectedVertexShader},
+		{"HS", G->mSelectedHullShader},
+		{"DS", G->mSelectedDomainShader},
+		{"GS", G->mSelectedGeometryShader},
+		{"PS", G->mSelectedPixelShader},
+		{"CS", G->mSelectedComputeShader}
+	};
+	for (const auto& pair : selectedShaderResources) {
+		if (pair.second != 0) {
+			std::string typeName = pair.first;
+			ID3D11DeviceChild* foundKey = FindShaderByValue(G->mShaders, pair.second);
+			if (foundKey != nullptr) {
+				std::string combinedString = typeName + " Name " + GetDebugObjectName(foundKey);
+				DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), pair.second, y, false);
+			}
+		}
+	}
+	//ID3D11Resource* foundKey = FindKeyByValue(G->mResources, G->mSelectedIndexBuffer);
+	//if (foundKey != nullptr) {
+	//	std::string combinedString = "IB Name " + GetDebugObjectName(foundKey);
+	//	DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), G->mSelectedIndexBuffer, y, false);
+	//}
 	DrawShaderInfoLine("VB", G->mSelectedVertexBuffer, y, false);
 	DrawShaderInfoLine("IB", G->mSelectedIndexBuffer, y, false);
 	DrawShaderInfoLine("VS", G->mSelectedVertexShader, y, true);

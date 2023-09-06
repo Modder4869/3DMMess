@@ -4,8 +4,10 @@
 #include <d3d11.h>
 #include <locale>
 #include <codecvt>
-
-std::string GetDebugObjectName(ID3D11Resource* resource)
+#include "globals.h"
+#include <algorithm>
+#include <cctype>
+std::string GetDebugObjectName(ID3D11DeviceChild* resource)
 {
     UINT dataSize = 0;
 
@@ -63,7 +65,7 @@ wchar_t* CombineWideStrings(const wchar_t* baseWstr, const wchar_t* appendString
         std::string part2 = baseStr.substr(pos);
 
         // Combine the parts with the append string in between
-        std::string combinedStr = part1 + "-" + appendStr + part2;
+        std::string combinedStr = part1 + "-n=" + appendStr + part2;
 
         // Convert the combined regular string back to a wide-character string
         wchar_t* combinedWstr = StringToWchar(combinedStr);
@@ -73,9 +75,47 @@ wchar_t* CombineWideStrings(const wchar_t* baseWstr, const wchar_t* appendString
     else {
         // Handle the case where ".XXX" was not found in the base string
         // Return a copy of the base string with the append string appended
-        std::string combinedStr = baseStr + "-" + appendStr;
+        std::string combinedStr = baseStr + "-n=" + appendStr;
         wchar_t* combinedWstr = StringToWchar(combinedStr);
 
         return combinedWstr;
     }
+  
+}
+ID3D11Resource* FindBufByValue(const ResourceMap map, UINT value) {
+    for (auto& pair : map) {
+        if (pair.second.hash == value) {
+            return pair.first;
+        }
+    }
+    return nullptr; // Return nullptr if not found.
+}
+ID3D11DeviceChild* FindShaderByValue(const ShaderMap map, UINT64 value) {
+    for (auto& pair : map) {
+        if (pair.second == value) {
+            return pair.first;
+        }
+    }
+    return nullptr; // Return nullptr if not found.
+}
+std::string MakeValidFilename(const std::string& filename) {
+    std::string validFilename = filename;
+
+    // Replace invalid characters with underscores
+    const std::string invalidChars = "\\/:*?\"<>|";
+    for (char& c : validFilename) {
+        if (std::find(invalidChars.begin(), invalidChars.end(), c) != invalidChars.end()) {
+            c = '_';
+        }
+    }
+
+    // Check for control characters and leading/trailing spaces
+    validFilename.erase(
+        std::remove_if(validFilename.begin(), validFilename.end(),
+            [](char c) { return std::iscntrl(c) || std::isspace(c); }
+        ),
+        validFilename.end()
+    );
+
+    return validFilename;
 }

@@ -1836,7 +1836,13 @@ void FrameAnalysisContext::DumpBuffer(ID3D11Buffer *buffer, wchar_t *filename,
 	DispatchInputEvents(GetHackerDevice());
 	if (!G->analyse_frame)
 		return;
+	std::string baseString = GetDebugObjectName(buffer);
+	// Convert the std::string to wchar_t*
+	wchar_t* wideBase = StringToWchar(baseString);
 
+	wchar_t* combinedWstr = CombineWideStrings(filename, wideBase);
+
+	filename = combinedWstr;
 	buffer->GetDesc(&desc);
 	memcpy(&orig_desc, &desc, sizeof(D3D11_BUFFER_DESC));
 

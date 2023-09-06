@@ -4,7 +4,7 @@
 #include <d3d11_1.h>
 #include <dxgi1_2.h>
 #include <wrl.h>
-
+#include "MyDebugUtils.h"
 #include "SpriteFont.h"
 #include "SpriteBatch.h"
 #include "PrimitiveBatch.h"

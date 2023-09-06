@@ -20,6 +20,9 @@
 #include "profiling.h"
 #include "FrameAnalysis.h"
 #include "ShaderRegex.h"
+#include "MyDebugUtils.h"
+#include <algorithm>
+
 
 // bo3b: For this routine, we have a lot of warnings in x64, from converting a size_t result into the needed
 //  DWORD type for the Write calls.  These are writing 256 byte strings, so there is never a chance that it 
@@ -45,14 +48,18 @@ static void DumpUsageResourceInfo(HANDLE f, std::set<uint32_t> *hashes, char *ta
 	char buf[256];
 	DWORD written; // Really? A >required< "optional" paramter that we don't care about?
 	bool nl;
-
+	std:string name;
 	for (orig_hash = hashes->begin(); orig_hash != hashes->end(); orig_hash++) {
 		try {
 			info = &G->mResourceInfo.at(*orig_hash);
 		} catch (std::out_of_range) {
 			continue;
 		}
-		_snprintf_s(buf, 256, 256, "<%s orig_hash=%08lx ", tag, *orig_hash);
+		auto Resource = FindBufByValue(G->mResources, *orig_hash);
+		if (Resource != nullptr) {
+			name = GetDebugObjectName(Resource);
+		}
+		_snprintf_s(buf, 256, 256, "<%s%s%s orig_hash=%08lx ", tag,(!name.empty() ? " name=" : ""), (!name.empty() ? ("\"" + name + "\"").c_str() : ""), *orig_hash);
 		WriteFile(f, buf, castStrLen(buf), &written, 0);
 		StrResourceDesc(buf, 256, *info);
 		WriteFile(f, buf, castStrLen(buf), &written, 0);
@@ -153,12 +160,16 @@ static void DumpUsageRegister(HANDLE f, char *tag, int id, const ResourceSnapsho
 {
 	char buf[256];
 	DWORD written;
-
+	std:string name;
 	sprintf(buf, "  <%s", tag);
 	WriteFile(f, buf, castStrLen(buf), &written, 0);
 
 	if (id != -1) {
-		sprintf(buf, " id=%d", id);
+		auto Shader = FindBufByValue(G->mResources, info.orig_hash);
+		if (Shader != nullptr) {
+			name = GetDebugObjectName(Shader);
+		}
+	    sprintf(buf, "%s%s id=%d",(!name.empty() ? " name=" : ""), (!name.empty() ? ("\"" + name + "\"").c_str() : ""), id);
 		WriteFile(f, buf, castStrLen(buf), &written, 0);
 	}
 
@@ -195,7 +206,10 @@ static void DumpShaderUsageInfo(HANDLE f, std::map<UINT64, ShaderInfoData> *info
 	int pos;
 
 	for (i = info_map->begin(); i != info_map->end(); ++i) {
-		sprintf(buf, "<%s hash=\"%016llx\">\n", tag, i->first);
+		auto Resource = FindShaderByValue(G->mShaders, i->first);
+		auto name = GetDebugObjectName(Resource);
+		sprintf(buf, "<%s%s%s hash=\"%016llx\">\n", tag, (!name.empty() ? " name=" : ""), (!name.empty() ? ("\""+name+"\"").c_str() : ""), i->first);
+
 		WriteFile(f, buf, castStrLen(buf), &written, 0);
 
 		// Does not apply to compute shaders:
@@ -204,7 +218,10 @@ static void DumpShaderUsageInfo(HANDLE f, std::map<UINT64, ShaderInfoData> *info
 			WriteFile(f, PEER_HEADER, castStrLen(PEER_HEADER), &written, 0);
 
 			for (j = i->second.PeerShaders.begin(); j != i->second.PeerShaders.end(); ++j) {
-				sprintf(buf, "%016llx ", *j);
+				auto Shader = FindShaderByValue(G->mShaders, *j);
+				auto name = GetDebugObjectName(Shader);
+				sprintf(buf, "%016llx%s ",*j, (!name.empty() ? (" (" + name + ") ").c_str() : ""));
+				//sprintf(buf, "%016llx ", *j);
 				WriteFile(f, buf, castStrLen(buf), &written, 0);
 			}
 			const char *REG_HEADER = "</PeerShaders>\n";
@@ -933,7 +950,6 @@ static bool WriteASM(string *asmText, string *hlslText, string *errText,
 	wchar_t fullName[MAX_PATH];
 	std::string token;
 	FILE *f;
-
 	swprintf_s(fileName, MAX_PATH, L"%016llx-%ls.txt", hash, shader_info.shaderType.c_str());
 	swprintf_s(fullName, MAX_PATH, L"%ls\\%ls", G->SHADER_PATH, fileName);
 
@@ -991,9 +1007,15 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 {
 	wchar_t fileName[MAX_PATH];
 	wchar_t fullName[MAX_PATH];
+	wchar_t fullName2[MAX_PATH];
 	FILE *fw;
+	FILE *fw1;
 	bool ret;
-
+	std::string combinedString;
+	ID3D11DeviceChild* foundKey = FindShaderByValue(G->mShaders, hash);
+	if (foundKey != nullptr) {
+	combinedString = GetDebugObjectName(foundKey);
+	}
 	// Try to decompile the current byte code into HLSL:
 	*hlslText = Decompile(shader_info.byteCode, asmText);
 	if (hlslText->empty())
@@ -1004,8 +1026,15 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 	// and that no longer modifies the file when touching it.
 
 	swprintf_s(fileName, MAX_PATH, L"%016llx-%ls_replace.txt", hash, shader_info.shaderType.c_str());
+	auto hashName = WcharToString(fileName);
+	hashName = hashName.substr(0, hashName.size() - 11);
+	wchar_t* newName = StringToWchar(hashName+ MakeValidFilename(combinedString)+".hlsl");
 	swprintf_s(fullName, MAX_PATH, L"%ls\\%ls", G->SHADER_PATH, fileName);
+	swprintf_s(fullName2, MAX_PATH, L"%ls\\%ls", G->SHADER_PATH, newName);
+
+
 	wfopen_ensuring_access(&fw, fullName, L"wb");
+	wfopen_ensuring_access(&fw1, fullName2, L"wb");
 	if (!fw)
 	{
 		LogInfoW(L"    error storing marked shader to %s\n", fullName);
@@ -1015,12 +1044,17 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 	LogInfoW(L"    storing patched shader to %s\n", fullName);
 
 	fwrite(hlslText->c_str(), 1, hlslText->size(), fw);
+	fwrite(hlslText->c_str(), 1, hlslText->size(), fw1);
 
 	fprintf_s(fw, "\n\n/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+	fprintf_s(fw1, "\n\n/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 	fwrite(asmText->c_str(), 1, asmText->size(), fw);
+	fwrite(asmText->c_str(), 1, asmText->size(), fw1);
 	fprintf_s(fw, "\n//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/\n");
+	fprintf_s(fw1, "\n//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/\n");
 
 	fclose(fw);
+	fclose(fw1);
 
 	// Lastly, reload the shader generated, to check for decompile errors, set it as the active
 	// shader code, in case there are visual errors, and make it the match the code in the file.
@@ -1511,7 +1545,6 @@ static void NextIndexBuffer(HackerDevice *device, void *private_data)
 static void NextPixelShader(HackerDevice *device, void *private_data)
 {
 	HuntNext<UINT64>("pixel shader", &G->mVisitedPixelShaders, &G->mSelectedPixelShader, &G->mSelectedPixelShaderPos);
-
 	EnterCriticalSectionPretty(&G->mCriticalSection);
 	G->mSelectedPixelShader_VertexBuffer.clear();
 	G->mSelectedPixelShader_IndexBuffer.clear();
