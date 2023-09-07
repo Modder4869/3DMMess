@@ -12,29 +12,39 @@ std::string GetDebugObjectName(ID3D11DeviceChild* resource)
     UINT dataSize = 0;
 
     // First, get the size of the private data (if any) by passing nullptr as the third parameter.
-    HRESULT hr = resource->GetPrivateData(WKPDID_D3DDebugObjectName, &dataSize, nullptr);
-
-    if (hr == S_OK)
-    {
-        // Allocate memory to store the private data.
-        char* data = new char[dataSize];
-
-        // Now, retrieve the private data into the allocated buffer.
-        hr = resource->GetPrivateData(WKPDID_D3DDebugObjectName, &dataSize, data);
+    try {
+        HRESULT hr = resource->GetPrivateData(WKPDID_D3DDebugObjectName, &dataSize, nullptr);
+    
 
         if (hr == S_OK)
         {
-            // Copy the binary data into a string
-            std::string result(data, dataSize);
+            // Allocate memory to store the private data.
+            char* data = new char[dataSize];
 
-            // Release the memory.
+            // Now, retrieve the private data into the allocated buffer.
+            hr = resource->GetPrivateData(WKPDID_D3DDebugObjectName, &dataSize, data);
+
+            if (hr == S_OK)
+            {
+                // Copy the binary data into a string
+                std::string result(data, dataSize);
+
+                // Release the memory.
+                delete[] data;
+
+                return result;
+            }
+
+            // If retrieval fails, release the memory and return an empty string.
             delete[] data;
-
-            return result;
         }
+    }
 
-        // If retrieval fails, release the memory and return an empty string.
-        delete[] data;
+    catch (const std::exception& ex)
+    {
+        // Handle the exception here, log it, or take appropriate action.
+        // You can also rethrow it if needed.
+        std::cerr << "Exception: " << ex.what() << std::endl;
     }
 
     return ""; // Failed to get the private data or convert it to a string.
