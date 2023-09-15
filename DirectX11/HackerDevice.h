@@ -16,6 +16,14 @@ DEFINE_GUID(IID_HackerDevice,
 // Forward declaration to allow circular reference between HackerContext and HackerDevice. 
 // We need this to allow each to reference the other as needed.
 
+#ifndef GENSHIN_VERTEX
+#define GENSHIN_VERTEX
+extern std::unordered_set<UINT64> genshin_character_vb_draw_hashes;
+#endif
+
+// Forward declaration to allow circular reference between HackerContext and HackerDevice. 
+// We need this to allow each to reference the other as needed.
+
 class HackerContext;
 class HackerSwapChain;
 
