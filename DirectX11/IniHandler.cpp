@@ -1036,7 +1036,7 @@ bool GetIniBool(const wchar_t *section, const wchar_t *key, bool def, bool *foun
 	return ret;
 }
 
-static UINT64 GetIniHash(const wchar_t *section, const wchar_t *key, UINT64 def, bool *found)
+static UINT64 GetIniHash(const wchar_t* section, const wchar_t* key, UINT64 def, bool* found)
 {
 	std::string val;
 	UINT64 ret = def;
@@ -1049,12 +1049,16 @@ static UINT64 GetIniHash(const wchar_t *section, const wchar_t *key, UINT64 def,
 		sscanf_s(val.c_str(), "%16llx%n", &ret, &len);
 		if (len != val.length()) {
 			IniWarning("WARNING: Hash parse error: %S=%s\n", key, val.c_str());
-		} else {
+		}
+		else {
 			if (found)
 				*found = true;
-			if (key == L"Hash") {
+			if (wcscmp(key, L"Hash") == 0) {
 				if (wcsstr(section, L"VertexLimitRaise") != 0) {
 					genshin_character_vb_draw_hashes.insert(ret);
+				}
+				if (wcsstr(section, L"RTLimitRaise") != 0) {
+					rt_limit_increase.insert(ret);
 				}
 			}
 			LogInfo("  %S=%016llx\n", key, ret);

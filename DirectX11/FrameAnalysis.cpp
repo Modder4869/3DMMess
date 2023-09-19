@@ -4659,6 +4659,64 @@ STDMETHODIMP_(void) FrameAnalysisContext::VSSetShaderResources(THIS_
 
 	HackerContext::VSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews);
 }
+HRESULT CreateMatchingRenderTargetViews(
+	ID3D11Device* pDevice,
+	ID3D11RenderTargetView* pExistingRTV,
+	ID3D11Resource* pRenderTargetResource,
+	ID3D11RenderTargetView** ppNewRTV1) {
+
+	if (!pDevice || !pExistingRTV || !pRenderTargetResource || !ppNewRTV1) {
+		return E_INVALIDARG;
+	}
+	ID3D11Texture2D* pNewRenderTargetResource = nullptr;
+	// Extract properties from the existing render target view
+	D3D11_RENDER_TARGET_VIEW_DESC existingDesc;
+	pExistingRTV->GetDesc(&existingDesc);
+
+	// Use the extracted properties to create new render target views
+	D3D11_RENDER_TARGET_VIEW_DESC newDesc1; // Adjust as per your needs
+
+	newDesc1.Format = existingDesc.Format;
+	newDesc1.ViewDimension = existingDesc.ViewDimension;
+
+	// Create the new render target resource with the same description
+	ID3D11Texture2D* pTexture = nullptr;
+	HRESULT hr = pRenderTargetResource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&pTexture);
+	if (SUCCEEDED(hr)) {
+		// Successfully obtained the texture interface
+		D3D11_TEXTURE2D_DESC textureDesc;
+		pTexture->GetDesc(&textureDesc);
+		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+		// Create the new render target resource
+		hr = pDevice->CreateTexture2D(&textureDesc, nullptr, &pNewRenderTargetResource);
+		pTexture->Release();  // Release the texture interface after creating the new resource
+
+		if (SUCCEEDED(hr)) {
+			// Create the render target view for the new render target resource
+			existingDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			hr = pDevice->CreateRenderTargetView(pNewRenderTargetResource, &existingDesc, ppNewRTV1);
+			pNewRenderTargetResource->Release();
+			pNewRenderTargetResource = nullptr;
+			if (FAILED(hr)) {
+				// Release the new render target resource if view creation failed
+				pNewRenderTargetResource->Release();
+				pNewRenderTargetResource = nullptr;
+				return hr;
+			}
+		}
+		else {
+			return hr;  // Return the creation failure of the new render target resource
+		}
+	}
+	else {
+		// Handle error when querying for the texture interface
+		return hr;
+	}
+
+	return S_OK;
+}
+
 
 STDMETHODIMP_(void) FrameAnalysisContext::OMSetRenderTargets(THIS_
 		/* [annotation] */
@@ -4672,8 +4730,79 @@ STDMETHODIMP_(void) FrameAnalysisContext::OMSetRenderTargets(THIS_
 			NumViews, ppRenderTargetViews, pDepthStencilView);
 	FrameAnalysisLogViewArray(0, NumViews, (ID3D11View *const *)ppRenderTargetViews);
 	FrameAnalysisLogView(-1, "D", pDepthStencilView);
+	ID3D11RenderTargetView** ppNewRenderTargetViews = nullptr;  // Declaration outside the if block
 
-	HackerContext::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView);
+	if (NumViews >= 1) {
+		if (ppRenderTargetViews[0] != nullptr) {
+			D3D11_RENDER_TARGET_VIEW_DESC originalDesc;
+			ID3D11Texture2D* pTexture = nullptr;
+			ppRenderTargetViews[0]->GetDesc(&originalDesc);;
+			ID3D11RenderTargetView* pNewRTV = nullptr;
+			ID3D11Resource* pRenderTargetResource = nullptr;
+			ppRenderTargetViews[0]->GetResource(&pRenderTargetResource);
+			auto hash = GetResourceHash(pRenderTargetResource);
+			if (rt_limit_increase.find(hash) != rt_limit_increase.end())
+			{
+				auto a = rt_limit_increase.find(hash);
+				int newNumViews = NumViews + 1;
+
+				std::string strNumber = std::to_string(hash);
+				char* cStrBuffer = new char[strNumber.length() + 1];
+				strcpy(cStrBuffer, strNumber.c_str());
+				//LogOverlay(LOG_WARNING, cStrBuffer);
+
+				ID3D11Device* pDevice = nullptr;
+				HackerContext::GetDevice(&pDevice);
+				/*	HRESULT hr = pDevice->CreateRenderTargetView(pRenderTargetResource, &originalDesc, &pNewRTV);*/
+				D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+				//ZeroMemory(&rtvDesc, sizeof(rtvDesc));
+				//rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+				//rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;  // Choose an appropriate format
+				//ID3D11RenderTargetView* pEmptyRTV = nullptr;
+				//D3D11_TEXTURE2D_DESC textureDesc;
+				//ZeroMemory(&textureDesc, sizeof(textureDesc));
+
+				//textureDesc.Width = G->GAME_INTERNAL_WIDTH;   // Set your desired width
+				//textureDesc.Height = G->GAME_INTERNAL_HEIGHT;  // Set your desired height
+				//textureDesc.MipLevels = 1;
+				//textureDesc.ArraySize = 1;
+				//textureDesc.Format = originalDesc.Format;  // Choose an appropriate format
+				//textureDesc.SampleDesc.Count = 1;
+				//textureDesc.Usage = D3D11_USAGE_DEFAULT;
+				//textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET;  // Bind as a render target
+				////HRESULT hr = pDevice->CreateTexture2D(&textureDesc, nullptr, &pTexture);
+				ID3D11RenderTargetView* pNewRTV1 = nullptr;
+				//ID3D11RenderTargetView* pNewRTV2 = nullptr;
+				HRESULT hr = CreateMatchingRenderTargetViews(
+					pDevice,
+					ppRenderTargetViews[0],
+					pRenderTargetResource,
+					&pNewRTV1
+				);
+				//hr = pDevice->CreateRenderTargetView(pTexture, &originalDesc, &pEmptyRTV);
+				if (FAILED(hr)) {
+					// Handle error
+				}
+				//if (FAILED(hr)) {
+				//	// Handle error
+				//};
+
+				ID3D11RenderTargetView** ppNewRenderTargetViews = new ID3D11RenderTargetView * [newNumViews];
+				for (int i = 0; i < NumViews; ++i) {
+					ppNewRenderTargetViews[i] = ppRenderTargetViews[i];
+				}
+				ppNewRenderTargetViews[NumViews] = pNewRTV1;
+				HackerContext::OMSetRenderTargets(newNumViews, ppNewRenderTargetViews, pDepthStencilView);
+				if (pNewRTV1 != nullptr) {
+					pNewRTV1->Release();
+				}
+
+			}
+			else {
+				HackerContext::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView);
+			}
+		}
+	}
 
 	if (G->analyse_frame && ppRenderTargetViews) {
 		for (UINT i = 0; i < NumViews; ++i) {
