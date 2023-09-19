@@ -4740,16 +4740,31 @@ STDMETHODIMP_(void) FrameAnalysisContext::OMSetRenderTargets(THIS_
 			ID3D11RenderTargetView* pNewRTV = nullptr;
 			ID3D11Resource* pRenderTargetResource = nullptr;
 			ppRenderTargetViews[0]->GetResource(&pRenderTargetResource);
-			auto hash = GetResourceHash(pRenderTargetResource);
+			EnterCriticalSectionPretty(&G->mCriticalSection);
+			auto hash = GetOrigResourceHash(pRenderTargetResource);
+			//auto hash2 = GetResourceHash(pRenderTargetResource);
+			pRenderTargetResource->Release();
+			LeaveCriticalSection(&G->mCriticalSection);
+	/*		std::string strNumber = "Orig" + std::to_string(hash);
+			char* cStrBuffer = new char[strNumber.length() + 1];
+			strcpy(cStrBuffer, strNumber.c_str());
+			LogOverlay(LOG_WARNING, cStrBuffer);*/
+
+		/*	for (auto& pair : rt_limit_increase) {
+				std::string strNumber = "[" + std::to_string(pair) + "]";
+			char* cStrBuffer = new char[strNumber.length() + 1];
+			strcpy(cStrBuffer, strNumber.c_str());
+			LogOverlay(LOG_WARNING, cStrBuffer);
+			}*/
 			if (rt_limit_increase.find(hash) != rt_limit_increase.end())
 			{
 				auto a = rt_limit_increase.find(hash);
 				int newNumViews = NumViews + 1;
 
-				std::string strNumber = std::to_string(hash);
+			/*	std::string strNumber = "INSIDE"+std::to_string(hash);
 				char* cStrBuffer = new char[strNumber.length() + 1];
 				strcpy(cStrBuffer, strNumber.c_str());
-				//LogOverlay(LOG_WARNING, cStrBuffer);
+				LogOverlay(LOG_WARNING, cStrBuffer);*/
 
 				ID3D11Device* pDevice = nullptr;
 				HackerContext::GetDevice(&pDevice);

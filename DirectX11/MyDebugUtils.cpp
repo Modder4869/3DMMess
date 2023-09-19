@@ -7,11 +7,13 @@
 #include "globals.h"
 #include <algorithm>
 #include <cctype>
+#include "IniHandler.h"
 std::string GetDebugObjectName(ID3D11DeviceChild* resource)
 {
     UINT dataSize = 0;
 
     // First, get the size of the private data (if any) by passing nullptr as the third parameter.
+    if (GetIniBool(L"Logging", L"debug_names", false, NULL) == 0) return "" ;
     try {
         HRESULT hr = resource->GetPrivateData(WKPDID_D3DDebugObjectName, &dataSize, nullptr);
     

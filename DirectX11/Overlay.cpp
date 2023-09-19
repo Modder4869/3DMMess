@@ -682,8 +682,11 @@ void Overlay::DrawShaderInfoLines(float *y)
 			std::string typeName = pair.first;
 			ID3D11Resource* foundKey = FindBufByValue(G->mResources, pair.second);
 			if (foundKey != nullptr) {
-				std::string combinedString = typeName + " Name " + GetDebugObjectName(foundKey);
-				DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()),pair.second, y, false);
+				auto name = GetDebugObjectName(foundKey);
+				std::string combinedString = typeName + " Name " + name;
+				if (!name.empty()) {
+					DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), pair.second, y, false);
+				}
 			}
 		}
 	}
@@ -700,8 +703,12 @@ void Overlay::DrawShaderInfoLines(float *y)
 			std::string typeName = pair.first;
 			ID3D11DeviceChild* foundKey = FindShaderByValue(G->mShaders, pair.second);
 			if (foundKey != nullptr) {
-				std::string combinedString = typeName + " Name " + GetDebugObjectName(foundKey);
-				DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), pair.second, y, false);
+				auto name = GetDebugObjectName(foundKey);
+				if (!name.empty()) {
+
+					std::string combinedString = typeName + " Name " + name;
+					DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), pair.second, y, false);
+				}
 			}
 		}
 	}
