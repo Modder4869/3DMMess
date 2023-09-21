@@ -1753,7 +1753,88 @@ static void ParseResourceSections()
 	bool found;
 
 	customResources.clear();
+	lower = ini_sections.lower_bound(wstring(L"Resource"));
+	// Iterate through the keys starting from the lower bound
+	for (auto it = lower; it != ini_sections.end(); ++it)
+	{
+		// Check if the key contains a certain word
+		if (it->first.find(L"_Loop_") != std::wstring::npos)
+		{
+			size_t lastUnderscore = it->first.find_last_of('_');
+			if (lastUnderscore != std::wstring::npos && lastUnderscore < it->first.size() - 1)
+			{
+				std::wstring numberString = it->first.substr(lastUnderscore + 1);
+				int lastNumber;
+				std::wistringstream(numberString) >> lastNumber;
 
+				// Add new sections based on the last number
+				for (int j = 0; j < lastNumber; ++j)
+				{
+					// Modify the IniSection if needed
+					IniSection modified_section = it->second;
+					// Modify kv_map in modified section (update or add key-value pairs)
+					//for (auto& kv_pair : it->second.kv_map)
+					//{
+					//	// Update or modify values in kv_map as needed
+					//	// For example, modifying existing values
+					//	kv_pair.second = L"modified_value_" + kv_pair.second;
+					//}
+					auto filename_it = modified_section.kv_map.find(L"filename");
+
+					if (filename_it != modified_section.kv_map.end()) {
+						std::wstring originalFilename = filename_it->second;  // Create a copy of the original filename
+
+						size_t extensionPos = originalFilename.find_last_of(L".");
+						if (extensionPos != std::wstring::npos) {
+							// Extract the original extension
+							std::wstring originalExtension = originalFilename.substr(extensionPos);
+
+							// Remove the extension from the original filename
+							std::wstring filenameWithoutExtension = originalFilename.substr(0, extensionPos);
+
+							// Modify the filename with the loop index and the original extension
+							std::wstring modifiedFilename = filenameWithoutExtension + std::to_wstring(j) + originalExtension;
+
+							// Update the value in kv_map with the modified filename
+							filename_it->second = modifiedFilename;
+						}
+					}
+					for (auto& line : modified_section.kv_vec) {
+						if (line.first == L"filename") {
+							line.second = filename_it->second;
+						}
+					}
+
+					//modified_section.ini_path = L"new_path"; // Modify other attributes if needed
+					// Find the position of the first underscore
+					
+					size_t firstUnderscorePos = it->first.find(L'_');
+					std::wstring modifiedFirstPart;
+					if (firstUnderscorePos != std::wstring::npos) {
+						// Extract the first part of the key before the first underscore
+						std::wstring firstPart = it->first.substr(0, firstUnderscorePos);
+
+						// Concatenate 'J' with the value of j
+						modifiedFirstPart = firstPart;
+						
+					}
+					// Insert the modified key-value pair into ini_sections
+					ini_sections.emplace_hint(it,modifiedFirstPart+std::to_wstring(j), modified_section);
+				}
+			}
+			//// Modify the key (or create a modified version of it)
+			//wstring modified_key = L"new_" + it->first;
+
+			//// Modify the IniSection if needed
+			//IniSection modified_section = it->second;
+			//modified_section.ini_path = L"new_path"; // Modify other attributes if needed
+
+			//// Insert the modified key-value pair into ini_sections
+			//ini_sections.emplace_hint(it, modified_key, modified_section);
+		}
+	}
+
+	//ini_sections.emplace_hint(lower, lower->first,L"new_key");
 	lower = ini_sections.lower_bound(wstring(L"Resource"));
 	upper = prefix_upper_bound(ini_sections, wstring(L"Resource"));
 	for (i = lower; i != upper; i++) {
@@ -2545,6 +2626,7 @@ static void ParseShaderRegexSections()
 
 	lower = ini_sections.lower_bound(wstring(L"ShaderRegex"));
 	upper = prefix_upper_bound(ini_sections, wstring(L"ShaderRegex"));
+
 	for (i = lower; i != upper; i++) {
 		section_id = &i->first;
 		LogInfo("[%S]\n", section_id->c_str());
