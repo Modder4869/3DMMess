@@ -4663,7 +4663,7 @@ HRESULT CreateMatchingRenderTargetViews(
 	ID3D11Device* pDevice,
 	ID3D11RenderTargetView* pExistingRTV,
 	ID3D11Resource* pRenderTargetResource,
-	ID3D11RenderTargetView** ppNewRTV1) {
+	ID3D11RenderTargetView** ppNewRTV1, ID3D11DeviceContext1* context) {
 
 	if (!pDevice || !pExistingRTV || !pRenderTargetResource || !ppNewRTV1) {
 		return E_INVALIDARG;
@@ -4680,13 +4680,31 @@ HRESULT CreateMatchingRenderTargetViews(
 	newDesc1.ViewDimension = existingDesc.ViewDimension;
 
 	// Create the new render target resource with the same description
+
+		// Enable alpha blending for transparency
+	//D3D11_BLEND_DESC blendDesc = {};
+	//blendDesc.RenderTarget[0].BlendEnable = TRUE;
+	//blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	//blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	//blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	//blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	//blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	//blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	//blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	//ID3D11BlendState* pBlendState;
+	//pDevice->CreateBlendState(&blendDesc, &pBlendState);
+	//float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };  // Use 0.0f for full transparency
+	//UINT sampleMask = 0xffffffff;  // All samples are used
+	//context->OMSetBlendState(pBlendState, blendFactor, sampleMask);
+
 	ID3D11Texture2D* pTexture = nullptr;
 	HRESULT hr = pRenderTargetResource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&pTexture);
 	if (SUCCEEDED(hr)) {
 		// Successfully obtained the texture interface
 		D3D11_TEXTURE2D_DESC textureDesc;
 		pTexture->GetDesc(&textureDesc);
-		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		//textureDesc.Format = DXGI_FORMAT_R16G16B16A16_TYPELESS;
+
 
 		// Create the new render target resource
 		hr = pDevice->CreateTexture2D(&textureDesc, nullptr, &pNewRenderTargetResource);
@@ -4694,7 +4712,8 @@ HRESULT CreateMatchingRenderTargetViews(
 
 		if (SUCCEEDED(hr)) {
 			// Create the render target view for the new render target resource
-			existingDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			//existingDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
+
 			hr = pDevice->CreateRenderTargetView(pNewRenderTargetResource, &existingDesc, ppNewRTV1);
 			pNewRenderTargetResource->Release();
 			pNewRenderTargetResource = nullptr;
@@ -4788,11 +4807,12 @@ STDMETHODIMP_(void) FrameAnalysisContext::OMSetRenderTargets(THIS_
 				////HRESULT hr = pDevice->CreateTexture2D(&textureDesc, nullptr, &pTexture);
 				ID3D11RenderTargetView* pNewRTV1 = nullptr;
 				//ID3D11RenderTargetView* pNewRTV2 = nullptr;
+				auto context = HackerContext::GetPassThroughOrigContext1();
 				HRESULT hr = CreateMatchingRenderTargetViews(
 					pDevice,
 					ppRenderTargetViews[0],
 					pRenderTargetResource,
-					&pNewRTV1
+					&pNewRTV1, context
 				);
 				//hr = pDevice->CreateRenderTargetView(pTexture, &originalDesc, &pEmptyRTV);
 				if (FAILED(hr)) {
@@ -4807,7 +4827,19 @@ STDMETHODIMP_(void) FrameAnalysisContext::OMSetRenderTargets(THIS_
 					ppNewRenderTargetViews[i] = ppRenderTargetViews[i];
 				}
 				ppNewRenderTargetViews[NumViews] = pNewRTV1;
+				// Define the clear color as black (RGBA format)
+				FLOAT color[4] = { 0,0,0,1 }; // RGBA: black with full alpha
+
+				// Clear the render target to the specified clear color (black)
 				HackerContext::OMSetRenderTargets(newNumViews, ppNewRenderTargetViews, pDepthStencilView);
+				//HackerContext::ClearRenderTargetView(ppNewRenderTargetViews[NumViews], color);
+				FrameAnalysisLog("FAKE OMSetRenderTargets(NumViews:%u, ppRenderTargetViews:0x%p, pDepthStencilView:0x%p)\n",
+					NumViews, ppRenderTargetViews, pDepthStencilView);
+				FrameAnalysisLogViewArray(0, newNumViews, (ID3D11View* const*)ppNewRenderTargetViews);
+				FrameAnalysisLogView(-1, "D", pDepthStencilView);
+				//auto context = HackerContext::GetPassThroughOrigContext1();
+				ClearRenderTargetView(ppNewRenderTargetViews[NumViews], color);
+			/*	context->ClearRenderTargetView(ppNewRenderTargetViews[NumViews], color);*/
 				if (pNewRTV1 != nullptr) {
 					pNewRTV1->Release();
 				}
@@ -4815,6 +4847,7 @@ STDMETHODIMP_(void) FrameAnalysisContext::OMSetRenderTargets(THIS_
 			}
 			else {
 				HackerContext::OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView);
+
 			}
 		}
 	}
