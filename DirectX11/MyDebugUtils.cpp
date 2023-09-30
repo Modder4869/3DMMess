@@ -8,15 +8,67 @@
 #include <algorithm>
 #include <cctype>
 #include "IniHandler.h"
+#include "HackerContext.h"
+std::map<UINT64, std::string> debugData;
+
+// Function to retrieve the debug object name and hash
+int64_t ConvertInt32toInt64(int32_t value) {
+    return static_cast<int64_t>(value);  // Widening conversion to int64_t
+}
+std::pair<std::string, UINT64> GetDebugData(UINT64 hash)
+{
+    auto it = debugData.find(hash);
+    if (it != debugData.end())
+    {
+        return { it->second, it->first }; // Return the debug name and the hash
+    }
+    else
+    {
+        return { "", 0 }; // Return empty string and 0 if not found
+    }
+}
+void StoreDebugData(const std::string& debugName, UINT64 hash)
+{
+    if (hash != 0) {
+        debugData[hash] = debugName;
+    }
+}
+
 std::string GetDebugObjectName(ID3D11DeviceChild* resource)
 {
     UINT dataSize = 0;
-
+    UINT64 hash = 0;
     // First, get the size of the private data (if any) by passing nullptr as the third parameter.
-    if (GetIniBool(L"Logging", L"debug_names", false, NULL) == 0) return "" ;
+    if (GetIniBool(L"Logging", L"debug_names", false, NULL) == 0) return "";
+
     try {
+        // Check if the data is already stored
+        //auto debugData = GetDebugData(resource);
+        //if (!debugData.first.empty())
+        //{
+        //    return debugData.first; // Debug name is already stored, return it
+        //}
+
+        // Cast ID3D11DeviceChild* to ID3D11Resource*
+        ID3D11Resource* resourceAsResource = nullptr;
+        resource->QueryInterface(__uuidof(ID3D11Resource), (void**)&resourceAsResource);
+
+        auto shadersIt = G->mShaders.find(resource);
+        if (shadersIt != G->mShaders.end()) {
+            hash = shadersIt->second;
+        }
+        else {
+            auto resourcesIt = G->mResources.find(resourceAsResource);
+            if (resourcesIt != G->mResources.end()) {
+                hash = ConvertInt32toInt64(resourcesIt->second.hash);
+            }
+        }
+        std::pair<std::string, UINT64> debugData = GetDebugData(hash);
+
+        if (!debugData.first.empty()) {
+            return debugData.first;
+        }
         HRESULT hr = resource->GetPrivateData(WKPDID_D3DDebugObjectName, &dataSize, nullptr);
-    
 
         if (hr == S_OK)
         {
@@ -29,23 +81,23 @@ std::string GetDebugObjectName(ID3D11DeviceChild* resource)
             if (hr == S_OK)
             {
                 // Copy the binary data into a string
-                std::string result(data, dataSize);
+                std::string debugName(data, dataSize);
+
+                // Store the debug name and hash
+                StoreDebugData(debugName, hash);
 
                 // Release the memory.
                 delete[] data;
 
-                return result;
+                return debugName;
             }
 
             // If retrieval fails, release the memory and return an empty string.
             delete[] data;
         }
     }
-
     catch (const std::exception& ex)
     {
-        // Handle the exception here, log it, or take appropriate action.
-        // You can also rethrow it if needed.
         std::cerr << "Exception: " << ex.what() << std::endl;
     }
 
@@ -130,4 +182,7 @@ std::string MakeValidFilename(const std::string& filename) {
     );
 
     return validFilename;
+
 }
+
+
