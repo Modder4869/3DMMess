@@ -111,6 +111,7 @@ wchar_t* StringToWchar(const std::string& str)
     wcscpy_s(wideChars, wideStr.size() + 1, wideStr.c_str());
     return wideChars;
 }
+
 std::string WcharToString(const wchar_t* wstr) {
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
     return converter.to_bytes(wstr);
@@ -154,6 +155,28 @@ ID3D11Resource* FindBufByValue(const ResourceMap map, UINT value) {
     }
     return nullptr; // Return nullptr if not found.
 }
+ID3D11Resource* FindBufByValueTest(const ResourceMap map, UINT value)
+{
+    auto it = std::find_if(map.begin(), map.end(),
+        [value](const auto& pair) { return pair.second.hash == value; });
+
+    if (it != map.end()) {
+        return it->first;
+    }
+
+    return nullptr; // Return nullptr if not found.
+}
+ID3D11DeviceChild* FindShaderByValueTest(const ShaderMap map, UINT64 value)
+{
+    auto it = std::find_if(map.begin(), map.end(),
+        [value](const auto& pair) { return pair.second == value; });
+
+    if (it != map.end()) {
+        return it->first;
+    }
+
+    return nullptr; // Return nullptr if not found.
+}
 ID3D11DeviceChild* FindShaderByValue(const ShaderMap map, UINT64 value) {
     for (auto& pair : map) {
         if (pair.second == value) {
@@ -162,6 +185,7 @@ ID3D11DeviceChild* FindShaderByValue(const ShaderMap map, UINT64 value) {
     }
     return nullptr; // Return nullptr if not found.
 }
+
 std::string MakeValidFilename(const std::string& filename) {
     std::string validFilename = filename;
 

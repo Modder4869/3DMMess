@@ -28,7 +28,11 @@ std::vector<CommandList*> registered_command_lists;
 std::unordered_set<CommandList*> command_lists_profiling;
 std::unordered_set<CommandListCommand*> command_lists_cmd_profiling;
 std::vector<std::shared_ptr<CommandList>> dynamically_allocated_command_lists;
+int find_local_variable(const wstring &name, CommandListScope *scope, CommandListVariable **var);
+bool parse_command_list_var_name(const wstring &name, const wstring *ini_namespace, CommandListVariable **target);
 
+
+int animation_counter = 0;
 
 // Adds consistent "3DMigoto" prefix to frame analysis log with appropriate
 // level of indentation for the current recursion level. Using a
@@ -886,6 +890,68 @@ bail:
 	return false;
 }
 
+bool ParseStoreCommand(const wchar_t *section,
+	const wchar_t *key, wstring *val,
+	CommandList *explicit_command_list,
+	CommandList *pre_command_list, CommandList *post_command_list,
+	const wstring *ini_namespace)
+{
+	StoreCommand *operation = new StoreCommand();
+	CommandListVariable *var = NULL;
+
+	size_t start = 0, end;
+	wstring sub;
+	wstring name;
+
+	wchar_t buf[MAX_PATH];
+	wchar_t *src_ptr = NULL;
+
+	for (int i = 0; i < 3; i++) {
+		end = val->find(L',', start);
+		sub = val->substr(start, end - start);
+		if (i == 0) {
+			if (!find_local_variable(sub, pre_command_list->scope, &var) &&
+				!parse_command_list_var_name(sub, ini_namespace, &var)) {
+				goto bail;
+			}
+				
+			operation->var = var;
+		}
+		if (i == 1) {
+			if (sub.length() >= MAX_PATH)
+				goto bail;
+				
+			wcsncpy_s(buf, sub.c_str(), MAX_PATH);
+			operation->options = parse_enum_option_string<wchar_t *, ResourceCopyOptions>
+				(ResourceCopyOptionNames, buf, &src_ptr);
+			if (!src_ptr)
+				goto bail;
+				
+			if (!operation->src.ParseTarget(src_ptr, true, ini_namespace)) 
+				goto bail;
+				
+		}
+		if (i == 2) {
+			try {
+				operation->loc = std::stoi(sub.c_str());
+			}
+			catch (...) {
+				goto bail;
+			}
+		}
+		if (end == wstring::npos)
+			break;
+		start = end + 1;
+	}
+
+	operation->ini_section = section;
+	return AddCommandToList(operation, explicit_command_list, pre_command_list, NULL, NULL, section, key, val);
+
+bail:
+	delete operation;
+	return false;
+}
+
 bool ParseCommandListGeneralCommands(const wchar_t *section,
 		const wchar_t *key, wstring *val,
 		CommandList *explicit_command_list,
@@ -947,6 +1013,10 @@ bool ParseCommandListGeneralCommands(const wchar_t *section,
 
 		if (!wcscmp(val->c_str(), L"draw_3dmigoto_overlay"))
 			return AddCommandToList(new Draw3DMigotoOverlayCommand(section), explicit_command_list, pre_command_list, NULL, NULL, section, key, val);
+	}
+
+	if (!wcscmp(key, L"store")) {
+		return ParseStoreCommand(section, key, val, explicit_command_list, pre_command_list, post_command_list, ini_namespace);
 	}
 
 	return ParseDrawCommand(section, key, val, explicit_command_list, pre_command_list, post_command_list, ini_namespace);
@@ -1284,6 +1354,58 @@ void DrawCommand::run(CommandListState *state)
 			else
 				COMMAND_LIST_LOG(state, "  Unable to determine index count\n");
 			break;
+	}
+}
+struct Float4 {
+	float x, y, z, w;
+};
+void StoreCommand::run(CommandListState *state)
+{
+	HackerContext *mHackerContext = state->mHackerContext;
+	ID3D11DeviceContext *mOrigContext1 = state->mOrigContext1;
+
+	//uint32_t hash;
+	D3D11_BUFFER_DESC desc;
+	D3D11_MAPPED_SUBRESOURCE map;
+	HRESULT hr;
+	ID3D11Resource *src_resource = NULL;
+	ID3D11Buffer *staging = NULL;
+	ID3D11View *src_view = NULL;
+	UINT stride = 0;
+	UINT offset = 0;
+	DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+	UINT buf_src_size = 0;
+	
+	src_resource = src.GetResource(state, &src_view, &stride, &offset, &format, &buf_src_size, NULL); 
+
+	//hash = G->mResources.at(src_resource).hash;
+	((ID3D11Buffer*)src_resource)->GetDesc(&desc);
+	desc.Usage = D3D11_USAGE_STAGING;
+	desc.BindFlags = 0;
+	desc.MiscFlags = 0;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+	LockResourceCreationMode();
+	hr = state->mHackerDevice->GetPassThroughOrigDevice1()->CreateBuffer(&desc, NULL, &staging);
+	UnlockResourceCreationMode();
+
+	if (!FAILED(hr)) {
+		mOrigContext1->CopyResource(staging, src_resource);
+		hr = mOrigContext1->Map(staging, 0, D3D11_MAP_READ, 0, &map);
+		if (!FAILED(hr)) {
+			
+			var->fval = ((float*)map.pData)[this->loc];
+			/*float4* float4Data = reinterpret_cast<float4*>(map.pData);*/
+			// Assuming map.pData is a pointer to the data
+			Float4* float4Data = reinterpret_cast<Float4*>(map.pData);
+
+			// Assuming this->loc represents the index of the Float4 you want to access
+			Float4 value = float4Data[this->loc];
+			var->fval = value.x;
+			//LogOverlay(LOG_INFO,"Var x %f,y %f,z %f,w %f", value.x,value.y,value.z,value.w);
+		}
+		mOrigContext1->Unmap(staging, 0);
+		staging->Release();
 	}
 }
 

@@ -8,6 +8,8 @@ wchar_t* StringToWchar(const std::string& str);
 wchar_t* CombineWideStrings(const wchar_t* baseWstr, const wchar_t* appendString);
 ID3D11DeviceChild* FindShaderByValue(const ShaderMap map, UINT64 value);
 ID3D11Resource* FindBufByValue(const ResourceMap map, UINT value);
+ID3D11DeviceChild* FindShaderByValueTest(const ShaderMap map, UINT64 value);
+ID3D11Resource* FindBufByValueTest(const ResourceMap map, UINT value);
 std::string WcharToString(const wchar_t* wstr);
 std::string MakeValidFilename(const std::string& filename);
 #endif // MYDEBUGUTILS_H

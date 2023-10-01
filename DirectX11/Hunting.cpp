@@ -57,7 +57,7 @@ static void DumpUsageResourceInfo(HANDLE f, std::set<uint32_t> *hashes, char *ta
 			continue;
 		}
 		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
-			auto Resource = FindBufByValue(G->mResources, *orig_hash);
+			auto Resource = FindBufByValueTest(G->mResources, *orig_hash);
 			if (Resource != nullptr) {
 				name = GetDebugObjectName(Resource);
 			}
@@ -169,7 +169,7 @@ static void DumpUsageRegister(HANDLE f, char *tag, int id, const ResourceSnapsho
 
 	if (id != -1) {
 		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
-			auto Shader = FindBufByValue(G->mResources, info.orig_hash);
+			auto Shader = FindBufByValueTest(G->mResources, info.orig_hash);
 			if (Shader != nullptr) {
 				name = GetDebugObjectName(Shader);
 			}
@@ -211,7 +211,7 @@ static void DumpShaderUsageInfo(HANDLE f, std::map<UINT64, ShaderInfoData> *info
 	int pos;
 std:string name;
 	for (i = info_map->begin(); i != info_map->end(); ++i) {
-		auto Resource = FindShaderByValue(G->mShaders, i->first);
+		auto Resource = FindShaderByValueTest(G->mShaders, i->first);
 		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
 			name = GetDebugObjectName(Resource);
 		}
@@ -226,7 +226,7 @@ std:string name;
 
 			for (j = i->second.PeerShaders.begin(); j != i->second.PeerShaders.end(); ++j) {
 				if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
-					auto Shader = FindShaderByValue(G->mShaders, *j);
+					auto Shader = FindShaderByValueTest(G->mShaders, *j);
 					name = GetDebugObjectName(Shader);
 				}
 				sprintf(buf, "%016llx%s ",*j, (!name.empty() ? (" (" + name + ") ").c_str() : ""));
@@ -1044,7 +1044,7 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 	FILE *fw1;
 	bool ret;
 	std::string combinedString;
-	ID3D11DeviceChild* foundKey = FindShaderByValue(G->mShaders, hash);
+	ID3D11DeviceChild* foundKey = FindShaderByValueTest(G->mShaders, hash);
 	if (foundKey != nullptr) {
 	combinedString = GetDebugObjectName(foundKey);
 	}

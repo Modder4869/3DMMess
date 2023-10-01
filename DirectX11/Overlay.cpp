@@ -680,7 +680,7 @@ void Overlay::DrawShaderInfoLines(float *y)
 	for (const auto& pair : selectedBufferResources) {
 		if (pair.second != 0) {
 			std::string typeName = pair.first;
-			ID3D11Resource* foundKey = FindBufByValue(G->mResources, pair.second);
+			ID3D11Resource* foundKey = FindBufByValueTest(G->mResources, pair.second);
 			if (foundKey != nullptr) {
 				auto name = GetDebugObjectName(foundKey);
 				std::string combinedString = typeName + " Name " + name;
@@ -701,7 +701,7 @@ void Overlay::DrawShaderInfoLines(float *y)
 	for (const auto& pair : selectedShaderResources) {
 		if (pair.second != 0) {
 			std::string typeName = pair.first;
-			ID3D11DeviceChild* foundKey = FindShaderByValue(G->mShaders, pair.second);
+			ID3D11DeviceChild* foundKey = FindShaderByValueTest(G->mShaders, pair.second);
 			if (foundKey != nullptr) {
 				auto name = GetDebugObjectName(foundKey);
 				if (!name.empty()) {
