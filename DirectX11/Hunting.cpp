@@ -22,7 +22,8 @@
 #include "ShaderRegex.h"
 #include "MyDebugUtils.h"
 #include <algorithm>
-
+#include "HackerContext.h"
+#include "HackerDevice.h"
 
 // bo3b: For this routine, we have a lot of warnings in x64, from converting a size_t result into the needed
 //  DWORD type for the Write calls.  These are writing 256 byte strings, so there is never a chance that it 
@@ -55,9 +56,11 @@ static void DumpUsageResourceInfo(HANDLE f, std::set<uint32_t> *hashes, char *ta
 		} catch (std::out_of_range) {
 			continue;
 		}
-		auto Resource = FindBufByValue(G->mResources, *orig_hash);
-		if (Resource != nullptr) {
-			name = GetDebugObjectName(Resource);
+		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
+			auto Resource = FindBufByValue(G->mResources, *orig_hash);
+			if (Resource != nullptr) {
+				name = GetDebugObjectName(Resource);
+			}
 		}
 		_snprintf_s(buf, 256, 256, "<%s%s%s orig_hash=%08lx ", tag,(!name.empty() ? " name=" : ""), (!name.empty() ? ("\"" + name + "\"").c_str() : ""), *orig_hash);
 		WriteFile(f, buf, castStrLen(buf), &written, 0);
@@ -165,9 +168,11 @@ static void DumpUsageRegister(HANDLE f, char *tag, int id, const ResourceSnapsho
 	WriteFile(f, buf, castStrLen(buf), &written, 0);
 
 	if (id != -1) {
-		auto Shader = FindBufByValue(G->mResources, info.orig_hash);
-		if (Shader != nullptr) {
-			name = GetDebugObjectName(Shader);
+		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
+			auto Shader = FindBufByValue(G->mResources, info.orig_hash);
+			if (Shader != nullptr) {
+				name = GetDebugObjectName(Shader);
+			}
 		}
 	    sprintf(buf, "%s%s id=%d",(!name.empty() ? " name=" : ""), (!name.empty() ? ("\"" + name + "\"").c_str() : ""), id);
 		WriteFile(f, buf, castStrLen(buf), &written, 0);
@@ -204,10 +209,12 @@ static void DumpShaderUsageInfo(HANDLE f, std::map<UINT64, ShaderInfoData> *info
 	char buf[256];
 	DWORD written;
 	int pos;
-
+std:string name;
 	for (i = info_map->begin(); i != info_map->end(); ++i) {
 		auto Resource = FindShaderByValue(G->mShaders, i->first);
-		auto name = GetDebugObjectName(Resource);
+		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
+			name = GetDebugObjectName(Resource);
+		}
 		sprintf(buf, "<%s%s%s hash=\"%016llx\">\n", tag, (!name.empty() ? " name=" : ""), (!name.empty() ? ("\""+name+"\"").c_str() : ""), i->first);
 
 		WriteFile(f, buf, castStrLen(buf), &written, 0);
@@ -218,8 +225,10 @@ static void DumpShaderUsageInfo(HANDLE f, std::map<UINT64, ShaderInfoData> *info
 			WriteFile(f, PEER_HEADER, castStrLen(PEER_HEADER), &written, 0);
 
 			for (j = i->second.PeerShaders.begin(); j != i->second.PeerShaders.end(); ++j) {
-				auto Shader = FindShaderByValue(G->mShaders, *j);
-				auto name = GetDebugObjectName(Shader);
+				if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
+					auto Shader = FindShaderByValue(G->mShaders, *j);
+					name = GetDebugObjectName(Shader);
+				}
 				sprintf(buf, "%016llx%s ",*j, (!name.empty() ? (" (" + name + ") ").c_str() : ""));
 				//sprintf(buf, "%016llx ", *j);
 				WriteFile(f, buf, castStrLen(buf), &written, 0);
@@ -670,10 +679,11 @@ static bool RegenerateShader(wchar_t *shaderFixPath, wchar_t *fileName, const ch
 		MigotoIncludeHandler include_handler(apath);
 		HRESULT ret = D3DCompile(srcData.data(), srcDataSize, apath, 0,
 				G->recursive_include == -1 ? D3D_COMPILE_STANDARD_FILE_INCLUDE : &include_handler,
-			"main", shaderModel, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &pByteCode, &pErrorMsgs);
+			"main", shaderModel, D3DCOMPILE_OPTIMIZATION_LEVEL3| D3DCOMPILE_DEBUG| D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &pByteCode, &pErrorMsgs);
 
 		LogInfo("    compile result for replacement HLSL shader: %x\n", ret);
-
+		ID3D11InfoQueue* infoQueue = nullptr;
+	
 		if (pErrorMsgs)
 		{
 			LPVOID errMsg = pErrorMsgs->GetBufferPointer();
@@ -834,7 +844,28 @@ static bool ReloadShader(wchar_t *shaderPath, wchar_t *fileName, HackerDevice *d
 				LogInfo("> failed to find original shader in mReloadedShaders: %ls\n", fileName);
 				continue;
 			}
+			//ID3D11InfoQueue* infoQueue = nullptr;
+			//HRESULT hr = device->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&infoQueue);
 
+			//if (SUCCEEDED(hr))
+			//{
+			//	UINT64 numMessages = infoQueue->GetNumStoredMessages();
+			//	for (UINT64 i = 0; i < numMessages; ++i)
+			//	{
+			//		SIZE_T messageLength = 0;
+			//		infoQueue->GetMessage(i, nullptr, &messageLength);
+
+			//		D3D11_MESSAGE* message = (D3D11_MESSAGE*)malloc(messageLength);
+			//		infoQueue->GetMessage(i, message, &messageLength);
+
+			//		// Process the message (e.g., log to console or file)
+			//		// Example: Print the message to the console
+			//		wprintf(L"%s\n", message->pDescription);
+			//		LogOverlay(LOG_INFO, "Message: %s", message->pDescription);
+
+			//		free(message);
+			//	}
+			//}
 			// Is there a good reason we are operating on a copy of the map and not the original?
 			// Took me a while to work out why this wasn't working: iter.second.found = true;
 			//   -DarkStarSword
@@ -852,6 +883,7 @@ static bool ReloadShader(wchar_t *shaderPath, wchar_t *fileName, HackerDevice *d
 
 			// If shaderModel is "bin", that means the original was loaded as a binary object, and thus shaderModel is unknown.
 			// Disassemble the binary to get that string.
+
 			if (shaderModel.compare("bin") == 0)
 			{
 				shaderModel = GetShaderModel(shaderCode->GetBufferPointer(), shaderCode->GetBufferSize());
