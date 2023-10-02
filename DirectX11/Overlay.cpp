@@ -678,7 +678,7 @@ void Overlay::DrawShaderInfoLines(float *y)
 	};
 
 	for (const auto& pair : selectedBufferResources) {
-		if (pair.second != 0) {
+		if (pair.second != 0 && pair.second != UINT32_MAX) {
 			std::string typeName = pair.first;
 			ID3D11Resource* foundKey = FindBufByValueTest(G->mResources, pair.second);
 			if (foundKey != nullptr) {
@@ -699,7 +699,7 @@ void Overlay::DrawShaderInfoLines(float *y)
 		{"CS", G->mSelectedComputeShader}
 	};
 	for (const auto& pair : selectedShaderResources) {
-		if (pair.second != 0) {
+		if (pair.second != 0 && pair.second != UINT64_MAX) {
 			std::string typeName = pair.first;
 			ID3D11DeviceChild* foundKey = FindShaderByValueTest(G->mShaders, pair.second);
 			if (foundKey != nullptr) {
