@@ -492,13 +492,15 @@ void FrameAnalysisContext::Dump2DResource(ID3D11Texture2D *resource, wchar_t
 	//wchar_t name[128] = {};
 	//UINT size = sizeof(name);
 	//resource->GetPrivateData(WKPDID_D3DDebugObjectName, &size, name);
-	std::string baseString = GetDebugObjectName(resource);
-	// Convert the std::string to wchar_t*
-	wchar_t* wideBase = StringToWchar(baseString);
+	if (debugNames()) {
+		std::string baseString = GetDebugObjectName(resource);
+		// Convert the std::string to wchar_t*
+		wchar_t* wideBase = StringToWchar(baseString);
 
-	wchar_t* combinedWstr = CombineWideStrings(filename, wideBase);
+		wchar_t* combinedWstr = CombineWideStrings(filename, wideBase);
 
-	filename = combinedWstr;
+		filename = combinedWstr;
+	}
 	//resource->GetPrivateData(WKPDID_D3DDebugObjectNameW, &uiNameLen, pData);
 	//resource->GetPrivateData(WKPDID_D3DDebugObjectName, &uiNameLen, pData);
 	// In order to de-dupe Texture2D resources, we need to compare their
@@ -1836,13 +1838,15 @@ void FrameAnalysisContext::DumpBuffer(ID3D11Buffer *buffer, wchar_t *filename,
 	DispatchInputEvents(GetHackerDevice());
 	if (!G->analyse_frame)
 		return;
-	std::string baseString = GetDebugObjectName(buffer);
-	// Convert the std::string to wchar_t*
-	wchar_t* wideBase = StringToWchar(baseString);
+	if (debugNames()) {
+		std::string baseString = GetDebugObjectName(buffer);
+		// Convert the std::string to wchar_t*
+		wchar_t* wideBase = StringToWchar(baseString);
 
-	wchar_t* combinedWstr = CombineWideStrings(filename, wideBase);
+		wchar_t* combinedWstr = CombineWideStrings(filename, wideBase);
 
-	filename = combinedWstr;
+		filename = combinedWstr;
+	}
 	buffer->GetDesc(&desc);
 	memcpy(&orig_desc, &desc, sizeof(D3D11_BUFFER_DESC));
 

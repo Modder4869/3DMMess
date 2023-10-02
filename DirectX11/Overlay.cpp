@@ -672,42 +672,44 @@ void Overlay::DrawShaderInfoLines(float *y)
 	// purposes). Since these only show up while hunting, it is better to
 	// have them reflect the actual order that they are run in. The summary
 	// line can stay in order of importance since it is always shown.
-	std::unordered_map<std::string, uint32_t> selectedBufferResources = {
-	  {"VB", G->mSelectedVertexBuffer},
-	  {"IB", G->mSelectedIndexBuffer},
-	};
+	if (debugNames()) {
+		std::unordered_map<std::string, uint32_t> selectedBufferResources = {
+		  {"VB", G->mSelectedVertexBuffer},
+		  {"IB", G->mSelectedIndexBuffer},
+		};
 
-	for (const auto& pair : selectedBufferResources) {
-		if (pair.second != 0 && pair.second != UINT32_MAX) {
-			std::string typeName = pair.first;
-			ID3D11Resource* foundKey = FindBufByValueTest(G->mResources, pair.second);
-			if (foundKey != nullptr) {
-				auto name = GetDebugObjectName(foundKey);
-				std::string combinedString = typeName + " Name " + name;
-				if (!name.empty()) {
-					DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), pair.second, y, false);
+		for (const auto& pair : selectedBufferResources) {
+			if (pair.second != 0 && pair.second != UINT32_MAX) {
+				std::string typeName = pair.first;
+				ID3D11Resource* foundKey = FindBufByValueTest(G->mResources, pair.second);
+				if (foundKey != nullptr) {
+					auto name = GetDebugObjectName(foundKey);
+					std::string combinedString = typeName + " Name " + name;
+					if (!name.empty()) {
+						DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), pair.second, y, false);
+					}
 				}
 			}
 		}
-	}
-	std::unordered_map<std::string, UINT64> selectedShaderResources = {
-	  {"VS", G->mSelectedVertexShader},
-		{"HS", G->mSelectedHullShader},
-		{"DS", G->mSelectedDomainShader},
-		{"GS", G->mSelectedGeometryShader},
-		{"PS", G->mSelectedPixelShader},
-		{"CS", G->mSelectedComputeShader}
-	};
-	for (const auto& pair : selectedShaderResources) {
-		if (pair.second != 0 && pair.second != UINT64_MAX) {
-			std::string typeName = pair.first;
-			ID3D11DeviceChild* foundKey = FindShaderByValueTest(G->mShaders, pair.second);
-			if (foundKey != nullptr) {
-				auto name = GetDebugObjectName(foundKey);
-				if (!name.empty()) {
+		std::unordered_map<std::string, UINT64> selectedShaderResources = {
+		  {"VS", G->mSelectedVertexShader},
+			{"HS", G->mSelectedHullShader},
+			{"DS", G->mSelectedDomainShader},
+			{"GS", G->mSelectedGeometryShader},
+			{"PS", G->mSelectedPixelShader},
+			{"CS", G->mSelectedComputeShader}
+		};
+		for (const auto& pair : selectedShaderResources) {
+			if (pair.second != 0 && pair.second != UINT64_MAX) {
+				std::string typeName = pair.first;
+				ID3D11DeviceChild* foundKey = FindShaderByValueTest(G->mShaders, pair.second);
+				if (foundKey != nullptr) {
+					auto name = GetDebugObjectName(foundKey);
+					if (!name.empty()) {
 
-					std::string combinedString = typeName + " Name " + name;
-					DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), pair.second, y, false);
+						std::string combinedString = typeName + " Name " + name;
+						DrawShaderInfoLine(const_cast<char*>(combinedString.c_str()), pair.second, y, false);
+					}
 				}
 			}
 		}

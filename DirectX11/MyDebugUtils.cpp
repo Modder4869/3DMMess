@@ -15,6 +15,12 @@ std::map<UINT64, std::string> debugData;
 int64_t ConvertInt32toInt64(int32_t value) {
     return static_cast<int64_t>(value);  // Widening conversion to int64_t
 }
+bool debugNames() {
+    return (GetIniBool(L"Logging", L"debug_names", false, NULL) == 1);
+}
+bool debugNamesUsages() {
+    return (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1);
+}
 std::pair<std::string, UINT64> GetDebugData(UINT64 hash)
 {
     auto it = debugData.find(hash);

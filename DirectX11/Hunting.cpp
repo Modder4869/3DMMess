@@ -56,7 +56,7 @@ static void DumpUsageResourceInfo(HANDLE f, std::set<uint32_t> *hashes, char *ta
 		} catch (std::out_of_range) {
 			continue;
 		}
-		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
+		if (debugNamesUsages()) {
 			auto Resource = FindBufByValueTest(G->mResources, *orig_hash);
 			if (Resource != nullptr) {
 				name = GetDebugObjectName(Resource);
@@ -212,7 +212,7 @@ static void DumpShaderUsageInfo(HANDLE f, std::map<UINT64, ShaderInfoData> *info
 std:string name;
 	for (i = info_map->begin(); i != info_map->end(); ++i) {
 		auto Resource = FindShaderByValueTest(G->mShaders, i->first);
-		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
+		if (debugNamesUsages()) {
 			name = GetDebugObjectName(Resource);
 		}
 		sprintf(buf, "<%s%s%s hash=\"%016llx\">\n", tag, (!name.empty() ? " name=" : ""), (!name.empty() ? ("\""+name+"\"").c_str() : ""), i->first);
@@ -225,7 +225,7 @@ std:string name;
 			WriteFile(f, PEER_HEADER, castStrLen(PEER_HEADER), &written, 0);
 
 			for (j = i->second.PeerShaders.begin(); j != i->second.PeerShaders.end(); ++j) {
-				if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
+				if (debugNamesUsages()) {
 					auto Shader = FindShaderByValueTest(G->mShaders, *j);
 					name = GetDebugObjectName(Shader);
 				}
@@ -1044,9 +1044,11 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 	FILE *fw1;
 	bool ret;
 	std::string combinedString;
-	ID3D11DeviceChild* foundKey = FindShaderByValueTest(G->mShaders, hash);
-	if (foundKey != nullptr) {
-	combinedString = GetDebugObjectName(foundKey);
+	if (debugNames()) {
+		ID3D11DeviceChild* foundKey = FindShaderByValueTest(G->mShaders, hash);
+		if (foundKey != nullptr) {
+			combinedString = GetDebugObjectName(foundKey);
+		}
 	}
 	// Try to decompile the current byte code into HLSL:
 	*hlslText = Decompile(shader_info.byteCode, asmText);
@@ -1060,13 +1062,9 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 	swprintf_s(fileName, MAX_PATH, L"%016llx-%ls_replace.txt", hash, shader_info.shaderType.c_str());
 	auto hashName = WcharToString(fileName);
 	hashName = hashName.substr(0, hashName.size() - 11);
-	wchar_t* newName = StringToWchar(hashName+ MakeValidFilename(combinedString)+".hlsl");
 	swprintf_s(fullName, MAX_PATH, L"%ls\\%ls", G->SHADER_PATH, fileName);
-	swprintf_s(fullName2, MAX_PATH, L"%ls\\%ls", G->SHADER_PATH, newName);
-
 
 	wfopen_ensuring_access(&fw, fullName, L"wb");
-	wfopen_ensuring_access(&fw1, fullName2, L"wb");
 	if (!fw)
 	{
 		LogInfoW(L"    error storing marked shader to %s\n", fullName);
@@ -1076,17 +1074,22 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 	LogInfoW(L"    storing patched shader to %s\n", fullName);
 
 	fwrite(hlslText->c_str(), 1, hlslText->size(), fw);
-	fwrite(hlslText->c_str(), 1, hlslText->size(), fw1);
 
 	fprintf_s(fw, "\n\n/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-	fprintf_s(fw1, "\n\n/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 	fwrite(asmText->c_str(), 1, asmText->size(), fw);
-	fwrite(asmText->c_str(), 1, asmText->size(), fw1);
 	fprintf_s(fw, "\n//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/\n");
-	fprintf_s(fw1, "\n//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/\n");
 
 	fclose(fw);
-	fclose(fw1);
+	if (debugNames()) {
+		wchar_t* newName = StringToWchar(hashName + MakeValidFilename(combinedString) + ".hlsl");
+		swprintf_s(fullName2, MAX_PATH, L"%ls\\%ls", G->SHADER_PATH, newName);
+		wfopen_ensuring_access(&fw1, fullName2, L"wb");
+		fwrite(hlslText->c_str(), 1, hlslText->size(), fw1);
+		fprintf_s(fw1, "\n\n/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+		fwrite(asmText->c_str(), 1, asmText->size(), fw1);
+		fprintf_s(fw1, "\n//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/\n");
+		fclose(fw1);
+	}
 
 	// Lastly, reload the shader generated, to check for decompile errors, set it as the active
 	// shader code, in case there are visual errors, and make it the match the code in the file.
