@@ -166,15 +166,15 @@ static void DumpUsageRegister(HANDLE f, char *tag, int id, const ResourceSnapsho
 	std:string name;
 	sprintf(buf, "  <%s", tag);
 	WriteFile(f, buf, castStrLen(buf), &written, 0);
-
 	if (id != -1) {
-		if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
-			auto Shader = FindBufByValueTest(G->mResources, info.orig_hash);
-			if (Shader != nullptr) {
-				name = GetDebugObjectName(Shader);
-			}
-		}
-	    sprintf(buf, "%s%s id=%d",(!name.empty() ? " name=" : ""), (!name.empty() ? ("\"" + name + "\"").c_str() : ""), id);
+		//if (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1) {
+		//	auto Shader = FindBufByValueTest(G->mResources, info.orig_hash);
+		//	if (Shader != nullptr) {
+		//		name = GetDebugObjectName(Shader);
+		//	}
+		//}
+	    //sprintf(buf, "%s%s id=%d",(!name.empty() ? " name=" : ""), (!name.empty() ? ("\"" + name + "\"").c_str() : ""), id);
+		sprintf(buf, " id=%d", id);
 		WriteFile(f, buf, castStrLen(buf), &written, 0);
 	}
 
@@ -679,7 +679,7 @@ static bool RegenerateShader(wchar_t *shaderFixPath, wchar_t *fileName, const ch
 		MigotoIncludeHandler include_handler(apath);
 		HRESULT ret = D3DCompile(srcData.data(), srcDataSize, apath, 0,
 				G->recursive_include == -1 ? D3D_COMPILE_STANDARD_FILE_INCLUDE : &include_handler,
-			"main", shaderModel, D3DCOMPILE_OPTIMIZATION_LEVEL3| D3DCOMPILE_DEBUG| D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &pByteCode, &pErrorMsgs);
+			"main", shaderModel, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &pByteCode, &pErrorMsgs);
 
 		LogInfo("    compile result for replacement HLSL shader: %x\n", ret);
 		ID3D11InfoQueue* infoQueue = nullptr;
