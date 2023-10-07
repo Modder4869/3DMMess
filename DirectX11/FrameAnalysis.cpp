@@ -149,7 +149,11 @@ void FrameAnalysisContext::FrameAnalysisLogShaderHash(ID3D11Shader *shader)
 	hash = lookup_shader_hash(shader);
 	if (hash != end(G->mShaders))
 		fprintf(frame_analysis_log, " hash=%016llx", hash->second);
-
+		if (debugNames()) {
+		std:string name = GetDebugObjectName(shader);
+			if (!name.empty())
+				fprintf(frame_analysis_log, " name=%s", ("\"" + name + "\"").c_str());
+		}
 	LeaveCriticalSection(&G->mCriticalSection);
 
 	fprintf(frame_analysis_log, "\n");
@@ -181,7 +185,11 @@ void FrameAnalysisContext::FrameAnalysisLogResourceHash(ID3D11Resource *resource
 			fprintf(frame_analysis_log, " hash=%08x", hash);
 		if (orig_hash != hash)
 			fprintf(frame_analysis_log, " orig_hash=%08x", orig_hash);
-
+		if (debugNames()) {
+		std:string name = GetDebugObjectName(resource);
+			if (!name.empty())
+				fprintf(frame_analysis_log, " name=%s", ("\"" + name + "\"").c_str());
+		}
 		info = &G->mResourceInfo.at(orig_hash);
 		if (info->hash_contaminated) {
 			fprintf(frame_analysis_log, " hash_contamination=");
@@ -210,7 +218,6 @@ void FrameAnalysisContext::FrameAnalysisLogResource(int slot, char *slot_name, I
 
 	FrameAnalysisLogSlot(frame_analysis_log, slot, slot_name);
 	fprintf(frame_analysis_log, " resource=0x%p", resource);
-
 	FrameAnalysisLogResourceHash(resource);
 }
 
@@ -220,10 +227,13 @@ void FrameAnalysisContext::FrameAnalysisLogView(int slot, char *slot_name, ID3D1
 
 	if (!view || !G->analyse_frame || !frame_analysis_log)
 		return;
-
 	FrameAnalysisLogSlot(frame_analysis_log, slot, slot_name);
 	fprintf(frame_analysis_log, " view=0x%p", view);
-
+	if (debugNames()) {
+	std:string name = GetDebugObjectName(view);
+	if(!name.empty())
+	fprintf(frame_analysis_log, " name=%s",("\"" + name + "\"").c_str());
+	}
 	view->GetResource(&resource);
 	if (!resource)
 		return;
@@ -492,7 +502,7 @@ void FrameAnalysisContext::Dump2DResource(ID3D11Texture2D *resource, wchar_t
 	//wchar_t name[128] = {};
 	//UINT size = sizeof(name);
 	//resource->GetPrivateData(WKPDID_D3DDebugObjectName, &size, name);
-	if (debugNames()) {
+	if (debugNamesFrame()) {
 		std::string baseString = GetDebugObjectName(resource);
 		// Convert the std::string to wchar_t*
 		wchar_t* wideBase = StringToWchar(baseString);
@@ -1838,7 +1848,7 @@ void FrameAnalysisContext::DumpBuffer(ID3D11Buffer *buffer, wchar_t *filename,
 	DispatchInputEvents(GetHackerDevice());
 	if (!G->analyse_frame)
 		return;
-	if (debugNames()) {
+	if (debugNamesFrame()) {
 		std::string baseString = GetDebugObjectName(buffer);
 		// Convert the std::string to wchar_t*
 		wchar_t* wideBase = StringToWchar(baseString);

@@ -14,4 +14,5 @@ std::string WcharToString(const wchar_t* wstr);
 std::string MakeValidFilename(const std::string& filename);
 bool debugNames();
 bool debugNamesUsages();
+bool debugNamesFrame();
 #endif // MYDEBUGUTILS_H

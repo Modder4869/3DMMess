@@ -16,10 +16,13 @@ int64_t ConvertInt32toInt64(int32_t value) {
     return static_cast<int64_t>(value);  // Widening conversion to int64_t
 }
 bool debugNames() {
-    return (GetIniBool(L"Logging", L"debug_names", false, NULL) == 1);
+    return (GetIniBool(L"Logging", L"debug_names_overlay", false, NULL) == 1);
 }
 bool debugNamesUsages() {
     return (GetIniBool(L"Logging", L"debug_names_usages", false, NULL) == 1);
+}
+bool debugNamesFrame() {
+    return (GetIniBool(L"Logging", L"debug_names_frame", false, NULL) == 1);
 }
 std::pair<std::string, UINT64> GetDebugData(UINT64 hash)
 {
@@ -45,7 +48,7 @@ std::string GetDebugObjectName(ID3D11DeviceChild* resource)
     UINT dataSize = 0;
     UINT64 hash = 0;
     // First, get the size of the private data (if any) by passing nullptr as the third parameter.
-    if (GetIniBool(L"Logging", L"debug_names", false, NULL) == 0) return "";
+    if (!debugNames()) return "";
 
     try {
         // Check if the data is already stored
