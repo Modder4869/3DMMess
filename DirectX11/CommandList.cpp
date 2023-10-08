@@ -905,17 +905,31 @@ bool ParseStoreCommand(const wchar_t *section,
 
 	wchar_t buf[MAX_PATH];
 	wchar_t *src_ptr = NULL;
-
+	wchar_t* nextToken = nullptr;
 	for (int i = 0; i < 3; i++) {
 		end = val->find(L',', start);
 		sub = val->substr(start, end - start);
 		if (i == 0) {
-			if (!find_local_variable(sub, pre_command_list->scope, &var) &&
-				!parse_command_list_var_name(sub, ini_namespace, &var)) {
-				goto bail;
+			wchar_t* token = wcstok_s(const_cast<wchar_t*>(sub.c_str()), L" ", &nextToken);
+			// Process each substring
+			while (token != nullptr) {
+				std::wstring sub_part(token);
+
+				if (!sub_part.empty()) {
+					if (!find_local_variable(sub_part, pre_command_list->scope, &var) &&
+						!parse_command_list_var_name(sub_part, ini_namespace, &var)) {
+						goto bail;
+					}
+					token = wcstok_s(nullptr, L" ", &nextToken);
+					if (!operation->var) {
+						operation->var = new std::vector<CommandListVariable*>;
+					}
+						operation->var->push_back(var);
+				}
+
+
 			}
-				
-			operation->var = var;
+
 		}
 		if (i == 1) {
 			if (sub.length() >= MAX_PATH)
@@ -933,7 +947,16 @@ bool ParseStoreCommand(const wchar_t *section,
 		}
 		if (i == 2) {
 			try {
-				operation->loc = std::stoi(sub.c_str());
+				wchar_t* token = wcstok_s(const_cast<wchar_t*>(sub.c_str()), L" ", &nextToken);
+				while (token != nullptr) {
+					std::wstring sub_part(token);
+
+					token = wcstok_s(nullptr, L" ", &nextToken);
+					if (token != nullptr) {
+						operation->loc.push_back(std::stoi(token));
+					}
+				}
+
 			}
 			catch (...) {
 				goto bail;
@@ -1393,15 +1416,38 @@ void StoreCommand::run(CommandListState *state)
 		mOrigContext1->CopyResource(staging, src_resource);
 		hr = mOrigContext1->Map(staging, 0, D3D11_MAP_READ, 0, &map);
 		if (!FAILED(hr)) {
-			
-			var->fval = ((float*)map.pData)[this->loc];
+			if (var) {
+				// Assuming you want to access both the CommandListVariable and the corresponding int in loc
+				size_t varSize = var->size();
+				for (size_t i = 0; i < varSize; ++i) {
+					CommandListVariable* commandVariablePtr = var->at(i);
+
+					if (commandVariablePtr) {
+						// Accessing members of the CommandListVariable
+
+						// Accessing the corresponding int in loc using the same index
+						if (i < loc.size()) {
+							int locValue = loc.at(i);
+							Float4* float4Data = reinterpret_cast<Float4*>(map.pData);
+							Float4 value = float4Data[locValue];
+							commandVariablePtr->fval = value.x;
+							LogOverlay(LOG_INFO, "local %d i:%d:Var x %f,y %f,z %f,w %f", locValue,i,value.x, value.y, value.z, value.w);
+							// Use locValue as needed
+						}
+
+						// Use the value as needed
+						// ...
+					}
+				}
+			}
+			//var->fval = ((float*)map.pData)[this->loc];
 			/*float4* float4Data = reinterpret_cast<float4*>(map.pData);*/
 			// Assuming map.pData is a pointer to the data
-			Float4* float4Data = reinterpret_cast<Float4*>(map.pData);
+
 
 			// Assuming this->loc represents the index of the Float4 you want to access
-			Float4 value = float4Data[this->loc];
-			var->fval = value.x;
+			//Float4 value = float4Data[this->loc];
+			//var->fval = value.x;
 			//LogOverlay(LOG_INFO,"Var x %f,y %f,z %f,w %f", value.x,value.y,value.z,value.w);
 		}
 		mOrigContext1->Unmap(staging, 0);

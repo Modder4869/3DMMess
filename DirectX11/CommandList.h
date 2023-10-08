@@ -1130,10 +1130,10 @@ public:
 
 class StoreCommand : public CommandListCommand {
 public:
-	CommandListVariable *var;
+	std::vector<CommandListVariable*>*var;
 	ResourceCopyTarget src;
 	ResourceCopyOptions options;
-	int loc;
+	std::vector<int> loc;
 
 	wstring ini_section;
 
