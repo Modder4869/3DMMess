@@ -947,15 +947,7 @@ bool ParseStoreCommand(const wchar_t *section,
 		}
 		if (i == 2) {
 			try {
-				wchar_t* token = wcstok_s(const_cast<wchar_t*>(sub.c_str()), L" ", &nextToken);
-				while (token != nullptr) {
-					std::wstring sub_part(token);
-					if (!sub_part.empty()) {
-						operation->loc.push_back(std::stoi(sub_part));
-					}
-					token = wcstok_s(nullptr, L" ", &nextToken);
-				}
-
+				operation->loc = std::stoi(sub.c_str());
 			}
 			catch (...) {
 				goto bail;
