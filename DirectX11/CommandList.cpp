@@ -950,11 +950,10 @@ bool ParseStoreCommand(const wchar_t *section,
 				wchar_t* token = wcstok_s(const_cast<wchar_t*>(sub.c_str()), L" ", &nextToken);
 				while (token != nullptr) {
 					std::wstring sub_part(token);
-
-					token = wcstok_s(nullptr, L" ", &nextToken);
-					if (token != nullptr) {
-						operation->loc.push_back(std::stoi(token));
+					if (!sub_part.empty()) {
+						operation->loc.push_back(std::stoi(sub_part));
 					}
+					token = wcstok_s(nullptr, L" ", &nextToken);
 				}
 
 			}
@@ -1431,7 +1430,7 @@ void StoreCommand::run(CommandListState *state)
 							Float4* float4Data = reinterpret_cast<Float4*>(map.pData);
 							Float4 value = float4Data[locValue];
 							commandVariablePtr->fval = value.x;
-							LogOverlay(LOG_INFO, "local %d i:%d:Var x %f,y %f,z %f,w %f", locValue,i,value.x, value.y, value.z, value.w);
+							//LogOverlay(LOG_INFO, "local %d i:%d:Var x %f,y %f,z %f,w %f", locValue,i,value.x, value.y, value.z, value.w);
 							// Use locValue as needed
 						}
 
