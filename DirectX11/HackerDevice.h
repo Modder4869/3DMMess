@@ -19,8 +19,6 @@ DEFINE_GUID(IID_HackerDevice,
 #ifndef GENSHIN_VERTEX
 #define GENSHIN_VERTEX
 extern std::unordered_set<UINT64> genshin_character_vb_draw_hashes;
-extern std::unordered_set<UINT64> rt_limit_increase;
-
 #endif
 
 // Forward declaration to allow circular reference between HackerContext and HackerDevice. 
