@@ -975,7 +975,25 @@ bail:
 	delete operation;
 	return false;
 }
+bool ParseSizeCommand(const wchar_t* section, const wchar_t* key, std::wstring* val) {
+	std::string hash;
+	bool found;
+	int len;
+	UINT64 ret;
 
+	auto size = GetIniInt(section, L"size", 0, &found);
+
+	if (GetIniString(section, L"hash", 0, &hash)) {
+		sscanf_s(hash.c_str(), "%16llx%n", &ret, &len);
+		if (len == hash.length()) {
+			if (found) {
+				vertex_limit_increase[(uint32_t)ret] = size;
+				//LogOverlay(LOG_INFO, "Parsed values: first = %u, second = %u\n", (uint32_t)ret, size);
+			}
+		}
+	}
+	return true;
+}
 bool ParseCommandListGeneralCommands(const wchar_t *section,
 		const wchar_t *key, wstring *val,
 		CommandList *explicit_command_list,
@@ -1041,6 +1059,9 @@ bool ParseCommandListGeneralCommands(const wchar_t *section,
 
 	if (!wcscmp(key, L"store")) {
 		return ParseStoreCommand(section, key, val, explicit_command_list, pre_command_list, post_command_list, ini_namespace);
+	}
+	if (!wcscmp(key, L"size")) {
+		return ParseSizeCommand(section, key, val);
 	}
 
 	return ParseDrawCommand(section, key, val, explicit_command_list, pre_command_list, post_command_list, ini_namespace);
