@@ -24,6 +24,9 @@ bool debugNamesUsages() {
 bool debugNamesFrame() {
     return (GetIniBool(L"Logging", L"debug_names_frame", false, NULL) == 1);
 }
+bool overlayLogs() {
+    return (GetIniBool(L"Logging", L"overlay_logs", false, NULL) == 1);
+}
 std::pair<std::string, UINT64> GetDebugData(UINT64 hash)
 {
     auto it = debugData.find(hash);

@@ -15,4 +15,5 @@ std::string MakeValidFilename(const std::string& filename);
 bool debugNames();
 bool debugNamesUsages();
 bool debugNamesFrame();
+bool overlayLogs();
 #endif // MYDEBUGUTILS_H

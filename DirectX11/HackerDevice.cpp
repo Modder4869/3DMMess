@@ -2163,6 +2163,10 @@ STDMETHODIMP HackerDevice::CreateBuffer(THIS_
 		}
 		UINT *p_bytewidth = &new_bytewidth;
 		UINT *old_bytewidth = (UINT *)&pNewDesc->ByteWidth;
+		if (overlayLogs()) {
+			LogOverlay(LOG_INFO, "CreateBuf hash %x [%d]old size %d new size %d", hash, hash, pNewDesc->ByteWidth, new_bytewidth);
+		}
+
 		*old_bytewidth = new_bytewidth;
 		//LogInfo("After: %d\n", pNewDesc->ByteWidth);
 		//LogInfo("%d", pNewDesc->ByteWidth);
