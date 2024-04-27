@@ -1489,9 +1489,12 @@ void StoreCommand::run(CommandListState *state)
 						if (i < loc.size()) {
 							int locValue = loc.at(i);
 							Float4* float4Data = reinterpret_cast<Float4*>(map.pData);
-							Float4 value = float4Data[locValue];
-							commandVariablePtr->fval = value.x;
-							//LogOverlay(LOG_INFO, "local %d i:%d:Var x %f,y %f,z %f,w %f", locValue,i,value.x, value.y, value.z, value.w);
+							Float4 value = float4Data[locValue/4];
+							commandVariablePtr->fval = ((float*)map.pData)[locValue];
+
+							if(overlayLogs()){
+							LogOverlay(LOG_INFO, "local %d i:%d:Var x %f,y %f,z %f,w %f", locValue/4,i,value.x, value.y, value.z, value.w);
+							 }
 							// Use locValue as needed
 						}
 
