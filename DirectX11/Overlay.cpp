@@ -951,15 +951,17 @@ void LogOverlay(LogLevel level, char *fmt, ...)
 		// the buffer, and truncate it instead - unless we can automatically
 		// wrap the message, which DirectXTK doesn't appear to support, who
 		// cares if it gets cut off somewhere off screen anyway?
-		_vsnprintf_s(amsg, maxstring, _TRUNCATE, fmt, ap);
-		mbstowcs(wmsg, amsg, maxstring);
+		if (!disableLogs) {
+			_vsnprintf_s(amsg, maxstring, _TRUNCATE, fmt, ap);
+			mbstowcs(wmsg, amsg, maxstring);
 
-		EnterCriticalSectionPretty(&notices.lock);
+			EnterCriticalSectionPretty(&notices.lock);
 
-		notices.notices[level].emplace_back(wmsg);
-		has_notice = true;
+			notices.notices[level].emplace_back(wmsg);
+			has_notice = true;
 
-		LeaveCriticalSection(&notices.lock);
+			LeaveCriticalSection(&notices.lock);
+		}
 	}
 
 	va_end(ap);

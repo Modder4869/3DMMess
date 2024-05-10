@@ -16,4 +16,5 @@ bool debugNames();
 bool debugNamesUsages();
 bool debugNamesFrame();
 bool overlayLogs();
+bool disableLogs();
 #endif // MYDEBUGUTILS_H

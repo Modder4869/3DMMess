@@ -27,6 +27,9 @@ bool debugNamesFrame() {
 bool overlayLogs() {
     return (GetIniBool(L"Logging", L"overlay_logs", false, NULL) == 1);
 }
+bool disableLogs() {
+    return (GetIniBool(L"Logging", L"disable_logs", false, NULL) == 1);
+}
 std::pair<std::string, UINT64> GetDebugData(UINT64 hash)
 {
     auto it = debugData.find(hash);
