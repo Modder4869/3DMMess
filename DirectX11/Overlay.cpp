@@ -672,7 +672,7 @@ void Overlay::DrawShaderInfoLines(float *y)
 	// purposes). Since these only show up while hunting, it is better to
 	// have them reflect the actual order that they are run in. The summary
 	// line can stay in order of importance since it is always shown.
-	if (debugNames()) {
+	if (getDebugNames()) {
 		std::unordered_map<std::string, uint32_t> selectedBufferResources = {
 		  {"VB", G->mSelectedVertexBuffer},
 		  {"IB", G->mSelectedIndexBuffer},
@@ -951,7 +951,7 @@ void LogOverlay(LogLevel level, char *fmt, ...)
 		// the buffer, and truncate it instead - unless we can automatically
 		// wrap the message, which DirectXTK doesn't appear to support, who
 		// cares if it gets cut off somewhere off screen anyway?
-		if (!disableLogs) {
+		if (!getDisableLogs()) {
 			_vsnprintf_s(amsg, maxstring, _TRUNCATE, fmt, ap);
 			mbstowcs(wmsg, amsg, maxstring);
 
