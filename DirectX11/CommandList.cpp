@@ -1492,7 +1492,7 @@ void StoreCommand::run(CommandListState *state)
 							Float4 value = float4Data[locValue/4];
 							commandVariablePtr->fval = ((float*)map.pData)[locValue];
 
-							if(overlayLogs()){
+							if(getOverlayLogs()){
 							LogOverlay(LOG_INFO, "local %d i:%d:Var x %f,y %f,z %f,w %f", locValue/4,i,value.x, value.y, value.z, value.w);
 							 }
 							// Use locValue as needed

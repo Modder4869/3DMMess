@@ -12,9 +12,10 @@ ID3D11DeviceChild* FindShaderByValueTest(const ShaderMap map, UINT64 value);
 ID3D11Resource* FindBufByValueTest(const ResourceMap map, UINT value);
 std::string WcharToString(const wchar_t* wstr);
 std::string MakeValidFilename(const std::string& filename);
-bool debugNames();
-bool debugNamesUsages();
-bool debugNamesFrame();
-bool overlayLogs();
-bool disableLogs();
+bool getDebugNames();
+bool getDebugNamesUsages();
+bool getDebugNamesFrame();
+bool getOverlayLogs();
+bool getDisableLogs();
+void updateSettings();
 #endif // MYDEBUGUTILS_H

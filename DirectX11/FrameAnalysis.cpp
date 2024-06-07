@@ -149,7 +149,7 @@ void FrameAnalysisContext::FrameAnalysisLogShaderHash(ID3D11Shader *shader)
 	hash = lookup_shader_hash(shader);
 	if (hash != end(G->mShaders))
 		fprintf(frame_analysis_log, " hash=%016llx", hash->second);
-		if (debugNames()) {
+		if (getDebugNames()) {
 		std:string name = GetDebugObjectName(shader);
 			if (!name.empty())
 				fprintf(frame_analysis_log, " name=%s", ("\"" + name + "\"").c_str());
@@ -185,7 +185,7 @@ void FrameAnalysisContext::FrameAnalysisLogResourceHash(ID3D11Resource *resource
 			fprintf(frame_analysis_log, " hash=%08x", hash);
 		if (orig_hash != hash)
 			fprintf(frame_analysis_log, " orig_hash=%08x", orig_hash);
-		if (debugNames()) {
+		if (getDebugNames()) {
 		std:string name = GetDebugObjectName(resource);
 			if (!name.empty())
 				fprintf(frame_analysis_log, " name=%s", ("\"" + name + "\"").c_str());
@@ -229,7 +229,7 @@ void FrameAnalysisContext::FrameAnalysisLogView(int slot, char *slot_name, ID3D1
 		return;
 	FrameAnalysisLogSlot(frame_analysis_log, slot, slot_name);
 	fprintf(frame_analysis_log, " view=0x%p", view);
-	if (debugNames()) {
+	if (getDebugNames()) {
 	std:string name = GetDebugObjectName(view);
 	if(!name.empty())
 	fprintf(frame_analysis_log, " name=%s",("\"" + name + "\"").c_str());
@@ -502,7 +502,7 @@ void FrameAnalysisContext::Dump2DResource(ID3D11Texture2D *resource, wchar_t
 	//wchar_t name[128] = {};
 	//UINT size = sizeof(name);
 	//resource->GetPrivateData(WKPDID_D3DDebugObjectName, &size, name);
-	if (debugNamesFrame()) {
+	if (getDebugNamesFrame()) {
 		std::string baseString = GetDebugObjectName(resource);
 		// Convert the std::string to wchar_t*
 		wchar_t* wideBase = StringToWchar(baseString);
@@ -1848,7 +1848,7 @@ void FrameAnalysisContext::DumpBuffer(ID3D11Buffer *buffer, wchar_t *filename,
 	DispatchInputEvents(GetHackerDevice());
 	if (!G->analyse_frame)
 		return;
-	if (debugNamesFrame()) {
+	if (getDebugNamesFrame()) {
 		std::string baseString = GetDebugObjectName(buffer);
 		// Convert the std::string to wchar_t*
 		wchar_t* wideBase = StringToWchar(baseString);

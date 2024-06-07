@@ -56,7 +56,7 @@ static void DumpUsageResourceInfo(HANDLE f, std::set<uint32_t> *hashes, char *ta
 		} catch (std::out_of_range) {
 			continue;
 		}
-		if (debugNamesUsages()) {
+		if (getDebugNamesUsages()) {
 			auto Resource = FindBufByValueTest(G->mResources, *orig_hash);
 			if (Resource != nullptr) {
 				name = GetDebugObjectName(Resource);
@@ -212,7 +212,7 @@ static void DumpShaderUsageInfo(HANDLE f, std::map<UINT64, ShaderInfoData> *info
 std:string name;
 	for (i = info_map->begin(); i != info_map->end(); ++i) {
 		auto Resource = FindShaderByValueTest(G->mShaders, i->first);
-		if (debugNamesUsages()) {
+		if (getDebugNamesUsages()) {
 			name = GetDebugObjectName(Resource);
 		}
 		sprintf(buf, "<%s%s%s hash=\"%016llx\">\n", tag, (!name.empty() ? " name=" : ""), (!name.empty() ? ("\""+name+"\"").c_str() : ""), i->first);
@@ -225,7 +225,7 @@ std:string name;
 			WriteFile(f, PEER_HEADER, castStrLen(PEER_HEADER), &written, 0);
 
 			for (j = i->second.PeerShaders.begin(); j != i->second.PeerShaders.end(); ++j) {
-				if (debugNamesUsages()) {
+				if (getDebugNamesUsages()) {
 					auto Shader = FindShaderByValueTest(G->mShaders, *j);
 					name = GetDebugObjectName(Shader);
 				}
@@ -1044,7 +1044,7 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 	FILE *fw1;
 	bool ret;
 	std::string combinedString;
-	if (debugNames()) {
+	if (getDebugNames()) {
 		ID3D11DeviceChild* foundKey = FindShaderByValueTest(G->mShaders, hash);
 		if (foundKey != nullptr) {
 			combinedString = GetDebugObjectName(foundKey);
@@ -1080,7 +1080,7 @@ static bool WriteHLSL(string *asmText, string *hlslText, string *errText,
 	fprintf_s(fw, "\n//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/\n");
 
 	fclose(fw);
-	if (debugNames()) {
+	if (getDebugNames()) {
 		wchar_t* newName = StringToWchar(hashName + MakeValidFilename(combinedString) + ".hlsl");
 		swprintf_s(fullName2, MAX_PATH, L"%ls\\%ls", G->SHADER_PATH, newName);
 		wfopen_ensuring_access(&fw1, fullName2, L"wb");

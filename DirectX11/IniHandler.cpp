@@ -17,6 +17,7 @@
 #include "nvprofile.h"
 #include "ShaderRegex.h"
 #include "cursor.h"
+#include "MyDebugUtils.h"
 
 #define INI_FILENAME L"d3dx.ini"
 
@@ -1273,7 +1274,6 @@ static void ParseIncludedIniFiles()
 	// Grab the user_config path before the below code removes it from the
 	// ini_sections data structure:
 	GetUserConfigPath(migoto_path);
-
 	// Do this before removing [Include] from ini_sections. TODO: Allow
 	// recursively included files to modify the exclude mid-recursion:
 	exclude = globbing_vector_to_regex(GetIniStringMultipleKeys(L"Include", L"exclude_recursive"));
@@ -4133,7 +4133,6 @@ void LoadConfigFile()
 	wcscat(iniFile, INI_FILENAME);
 	wcscat(logFilename, L"d3d11_log.txt");
 	warn_of_conflicting_d3dx(iniFile);
-
 	// Log all settings that are _enabled_, in order, 
 	// so that there is no question what settings we are using.
 
@@ -4201,6 +4200,7 @@ void LoadConfigFile()
 		enable_lock_dependency_checks();
 
 	// [Include]
+	updateSettings();
 	ParseIncludedIniFiles();
 
 	// [System]
@@ -4488,7 +4488,6 @@ void LoadConfigFile()
 
 	if (G->hide_cursor || G->SCREEN_UPSCALING)
 		InstallMouseHooks(G->hide_cursor);
-
 	emit_ini_warning_tone();
 }
 
